@@ -1,0 +1,656 @@
+<!doctype html><html lang=zh-hans><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=HandheldFriendly content="True"><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="no-transform"><meta http-equiv=cache-control content="no-siteapp"><meta name=generator content="Hugo 0.84.4"><link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>"><title>Linux Systemd - ⚝</title><meta name=author content="qlel"><meta name=description content="A minimal Hugo theme with nice theme color."><meta name=keywords content="linux,shell"><meta property="og:title" content="Linux Systemd"><meta name=twitter:title content="Linux Systemd"><meta property="og:type" content="article"><meta property="og:url" content="/post/linux-systemd/"><meta property="og:description" content="systemd 是一个专用于 Linux 操作系统的系统与服务管理器。 当作为启动进程(PID=1)运行时， 它将作为初始化系统运行， 也就是启动并维护各种用户空间的服务。"><meta name=twitter:description content="systemd 是一个专用于 Linux 操作系统的系统与服务管理器。 当作为启动进程(PID=1)运行时， 它将作为初始化系统运行， 也就是启动并维护各种用户空间的服务。"><meta property="og:image" content="/img/og.png"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-04-08T17:07:04+08:00"><meta property="article:modified_time" content="2021-04-08T17:07:04+08:00"><style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style><link rel=stylesheet href=/assets/css/fuji.min.css></head><body data-theme=auto data-theme-auto=true><script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script><header><div class="container-lg clearfix"><div class="col-12 header"><a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span></div></div></header><main><div class="container-lg clearfix"><div class="col-12 col-md-9 float-left content"><article><h2 class="post-item post-title"><a href=/post/linux-systemd/>Linux Systemd</a></h2><div class="post-item post-meta"><span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-04-08</span>
+<span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;11777 字</span>
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/linux>linux</a>&nbsp;<a href=/tags/shell>shell</a>&nbsp;</span></div><div class="post-content markdown-body"><p>systemd 是一个专用于 Linux 操作系统的系统与服务管理器。 当作为启动进程(PID=1)运行时， 它将作为初始化系统运行， 也就是启动并维护各种用户空间的服务。</p><pre><code class=language-bash># 显示帮助信息
+systemctl -h
+
+# 显示版本
+systemctl --version
+</code></pre><h2 id=概念>概念</h2><p>systemd 架构图:
+<img class=img-zoomable src=/systemd/systemd_schema.png alt="systemd 架构图"></p><p>systemd 将各种系统启动和运行相关的对象， 表示为各种不同类型的单元(Unit)， 并提供了处理不同单元之间依赖关系的能力。</p><p>大部分单元都静态的定义在单元文件中， 但是有少部分单元则是动态自动生成的.</p><p>systemd 有12种不同类型的单元文件:</p><table><thead><tr><th>单元类型</th><th>单元文件扩展名</th><th>说明</th></tr></thead><tbody><tr><td>service</td><td><code>.service</code></td><td>用于封装一个后台服务进程(守护进程)。</td></tr><tr><td>socket</td><td><code>.socket</code></td><td>监控来自于系统或网络的数据消息</td></tr><tr><td>target</td><td><code>.target</code></td><td>用于将多个单元在逻辑上组合在一起。</td></tr><tr><td>device</td><td><code>.device</code></td><td>用于封装一个设备文件，可用于基于设备的启动。</td></tr><tr><td>mount</td><td><code>.mount</code></td><td>用于封装一个文件系统挂载点(也向后兼容传统的 /etc/fstab 文件)</td></tr><tr><td>automount</td><td><code>.automount</code></td><td>用于封装一个文件系统自动挂载点。它取代了传统的 autofs 服务。</td></tr><tr><td>timer</td><td><code>.timer</code></td><td>用于封装一个基于时间触发的动作。它取代了传统的 atd, crond 等任务计划服务。</td></tr><tr><td>swap</td><td><code>.swap</code></td><td>用于封装一个交换分区或者交换文件。</td></tr><tr><td>path</td><td><code>.path</code></td><td>用于根据文件系统上特定对象的变化来启动其他服务。</td></tr><tr><td>slice</td><td><code>.slice</code></td><td>用于控制特定 CGroup 内(例如一组 service 与 scope 单元)所有进程的总体资源占用。</td></tr><tr><td>scope</td><td><code>.scope</code></td><td>这种 Unit 文件不是用户创建的，而是 Systemd 运行时产生的，描述一些系统服务的分组信息</td></tr><tr><td>snapshot</td><td><code>.snapshot</code></td><td>用于表示一个由 systemctl snapshot 命令创建的 Systemd Units 运行状态快照，可以切回某个快照</td></tr></tbody></table><p>单元有5种不同的状态:</p><table><thead><tr><th>单元状态</th><th>说明</th></tr></thead><tbody><tr><td><code>active</code></td><td>活动</td></tr><tr><td><code>inactive</code></td><td>停止</td></tr><tr><td><code>activating</code></td><td>启动中</td></tr><tr><td><code>deactivating</code></td><td>暂停中</td></tr><tr><td><code>failed</code></td><td>失败</td></tr><tr><td>可用<code>systemctl status 某个单元</code>, 查看某个单元的状态. 例如:</td><td></td></tr></tbody></table><pre><code class=language-bash># 查看ssh服务单元状态
+systemctl status ssh.service
+</code></pre><h2 id=系统管理>系统管理</h2><h3 id=systemctl>systemctl</h3><p><code>systemctl</code> 是 Systemd 的主命令，用于管理系统。</p><p>中文文档: <a href=http://www.jinbuguo.com/systemd/systemctl.html>http://www.jinbuguo.com/systemd/systemctl.html</a></p><pre><code class=language-bash># 重启系统
+$ sudo systemctl reboot
+
+# 关闭系统，切断电源
+$ sudo systemctl poweroff
+
+# 关闭系统，但不切断电源, CPU停止工作
+$ sudo systemctl halt
+
+# 暂停系统, 休眠到内存。
+$ sudo systemctl suspend
+
+# 让系统进入冬眠状态, 休眠到硬盘。
+$ sudo systemctl hibernate
+
+# 让系统进入混合休眠状态, 同时休眠到内存和硬盘。
+$ sudo systemctl hybrid-sleep
+
+# 启动进入救援状态（单用户状态）
+$ sudo systemctl rescue
+</code></pre><h3 id=systemd-analyze>systemd-analyze</h3><p>分析与调试 systemd 系统管理器</p><p>中文文档: <a href=http://www.jinbuguo.com/systemd/systemd-analyze.html>http://www.jinbuguo.com/systemd/systemd-analyze.html</a></p><pre><code class=language-bash># 查看系统启动耗时
+$ systemd-analyze
+
+# 按照每个单元花费的启动时间降序列出所有当前正处于活动(active)状态的单元。
+$ systemd-analyze blame
+
+# 为指定的单元以树状形式显示时间关键链
+# 显示的信息: `@时间` 表示时启动的时间点; `+时间` 表示启动完成消耗的时间
+$ systemd-analyze critical-chain [UNIT…]
+
+# 输出一个svg图像, 包含每个单元的启动时刻和启动完成的消耗时间
+$ systemd-analyze plot &gt; abc.svg
+
+# 按照 GraphViz dot 格式输出单元间的依赖关系图。
+# systemd-analyze dot | dot -Tsvg &gt; systemd.svg
+$ systemd-analyze dot
+
+# 按照人类易读的格式输出全部单元的状态
+$ systemd-analyze dump
+
+# 列出与单元相关的全部目录
+$ systemd-analyze unit-paths
+
+# 打印出 systemd 守护进程当前的日志等级
+$ systemd-analyze log-level
+
+# 打印出 systemd 守护进程当前的日志目标
+$ systemd-analyze log-target
+
+# 校验指定的单元文件的正确性，并显示发现的错误
+$ systemd-analyze verify 单元文件
+</code></pre><h3 id=hostnamectl>hostnamectl</h3><p>用于查看当前主机的信息。</p><p><a href=http://www.jinbuguo.com/systemd/hostnamectl.html>http://www.jinbuguo.com/systemd/hostnamectl.html</a></p><pre><code class=language-bash># 显示当前的主机名及其他相关信息
+$ hostnamectl
+$ hostnamectl status
+
+# 设置主机名
+$ hostnamectl set-hostname NAME
+</code></pre><h3 id=localectl>localectl</h3><p>本地化设置。</p><p><a href=http://www.jinbuguo.com/systemd/localectl.html>http://www.jinbuguo.com/systemd/localectl.html</a></p><pre><code class=language-bash># 查看本地化设置
+$ localectl
+$ localectl status
+
+# 列出所有可用(已编译)的语言环境
+$ localectl list-locales
+
+# 本地化设置, 如: localectl set-locale LANG=en_GB.utf8
+$ localectl set-locale VARIABLE=LOCALE…
+
+# 列出所有可用(已编译)的键盘映射
+$ localectl list-keymaps
+
+# 设置键盘映射, 设置为 `us` 即可
+$ localectl set-keymap MAP
+</code></pre><h3 id=timedatectl>timedatectl</h3><p>控制系统的时间与日期</p><p><a href=http://www.jinbuguo.com/systemd/timedatectl.html>http://www.jinbuguo.com/systemd/timedatectl.html</a></p><pre><code class=language-bash># 显示系统时钟与RTC的当前状态，包括时区设置以及网络时间同步服务的状态。
+$ timedatectl
+$ timedatectl status
+$ timedatectl show # 以机器可读形式显示
+
+# 列出所有可用时区, 可用于设置时区 set-timezone
+$ timedatectl list-timezones
+
+# 设置时区
+$ timedatectl set-timezone [TIMEZONE]
+
+# 将系统时钟设为指定的时间，并同时更新RTC时间
+# [TIME] 是一个形如 &quot;2012-10-30 18:17:16&quot; 的时间字符串
+$ timedatectl set-time [TIME]
+
+# 接受一个布尔值，表示是否开启网络时间同步(若可用)
+$ timedatectl set-ntp [BOOL]
+</code></pre><h3 id=loginctl>loginctl</h3><p>控制 systemd 登录管理器</p><p><a href=http://www.jinbuguo.com/systemd/loginctl.html>http://www.jinbuguo.com/systemd/loginctl.html</a></p><p>session 会话命令:</p><pre><code class=language-bash># 列出当前所有的会话
+$ loginctl 
+$ loginctl list-sessions
+
+# 显示简洁的会话状态信息，后跟最近的日志。
+$ loginctl session-status [ID…]
+
+# 显示会话的各项属性值, 易于机器阅读形式
+$ loginctl show-session [ID…]
+
+# 激活会话。也就是将处于后台的会话切换到前台
+$ loginctl activate [ID]
+
+# 锁定/解锁会话 (如果会话支持屏幕锁)
+$ loginctl lock-session [ID…]
+$ loginctl unlock-session [ID…]
+
+# 锁定/解锁 所有支持屏幕锁的会话
+$ loginctl lock-sessions
+$ loginctl unlock-sessions
+
+# 结束指定的会话。也就是杀死指定会话的所有进程、释放所有与此会话相关的资源。
+$ loginctl terminate-session ID…
+</code></pre><p>user 用户命令:</p><pre><code class=language-bash># 列出当前登录的用户
+$ loginctl list-users
+
+# 显示简洁的已登录用户状态信息，后跟最近的日志。
+$ loginctl user-status [USER…]
+
+# 显示用户的各项属性值
+$ loginctl show-user [USER…]
+
+# 启用/禁止用户逗留(相当于保持登录状态)。
+$ loginctl enable-linger [USER…]
+$ loginctl disable-linger [USER…]
+
+# 结束指定用户的会话。这将杀死该用户的所有会话中的所有进程，同时释放与此用户有关的所有资源。
+$ loginctl terminate-user USER…
+</code></pre><p>seat 席位命令:</p><pre><code class=language-bash># 列出当前本机上的所有可用席位
+$ loginctl list-seats
+
+# 显示简洁的席位信息，后跟最近的日志。
+$ loginctl seat-status [NAME…]
+
+# 显示席位的各项属性值
+$ loginctl seat-user [NAME…]
+
+# 将指定的设备(DEVICE) 持久的连接到指定的席位(NAME)上。 
+# 设备可以用相对于 /sys 文件系统的设备路径表示。 
+# 要创建一个新席位，至少需要连接一个显卡。 
+# 席位名称必须以 &quot;seat&quot; 开头， 后跟 a–z, A–Z, 0–9, &quot;-&quot;, &quot;_&quot; 字符
+$ loginctl attach NAME DEVICE…
+
+# 删除所有先前用 attach 命令连接的设备
+# 同时也删除了所有先前用 attach 命令创建的席位 
+# 调用此命令之后，所有自动生成的席位将会被保留
+# 同时所有席位设备将会连接到自动生成的席位上。
+$ flush-devices
+
+# 结束指定席位的会话。这将杀死指定席位上的所有会话进程，同时释放与之关联的所有资源。
+$ loginctl terminate-user NAME…
+</code></pre><h2 id=单元unit>单元Unit</h2><p>Systemd 可以管理所有系统资源。不同的资源统称为 Unit(单元)</p><p>前面概念说了一共12中单元, 简述为:</p><ul><li>Service unit：系统服务</li><li>Target unit：多个 Unit 构成的一个组</li><li>Device Unit：硬件设备</li><li>Mount Unit：文件系统的挂载点</li><li>Automount Unit：自动挂载点</li><li>Path Unit：文件或路径</li><li>Scope Unit：不是由 Systemd 启动的外部进程</li><li>Slice Unit：进程组</li><li>Snapshot Unit：Systemd 快照，可以切回某个快照</li><li>Socket Unit：进程间通信的 socket</li><li>Swap Unit：swap 文件</li><li>Timer Unit：定时器</li></ul><h3 id=list相关>list相关</h3><p><code>list-units</code></p><p>列出相关单元信息, 可以使用相关选项过滤: <code>--state</code>, <code>--type</code>, <code>--failed</code>等</p><pre><code class=language-bash># 格式
+$ systemctl list-units [PATTERN…]
+
+# 已加载到内存中(正在运行)的单元 Unit
+$ systemctl list-units
+
+# 显示 ssh.service 相关信息
+$ systemctl list-units ssh.service
+
+# 列出所有Unit
+$ systemctl list-units --all
+
+# 列出所有正在运行的、类型为 service 的 Unit
+$ systemctl list-units --type=service
+
+# 列出所有加载失败的 Unit
+$ systemctl list-units --failed
+
+# 列出所有状态为 inactive 的 Unit
+$ systemctl list-units --all --state=inactive
+
+# 列出所有可用的类型
+$ systemctl --type=help
+
+# 列出所有可用的状态
+$ systemctl --state=help
+</code></pre><hr><p><code>list-sockets</code></p><p>列出当前已加载到内存中的套接字(socket)单元，并按照监听地址排序。</p><ul><li><code>--show-types</code> 显示套接字类型</li><li><code>--all</code> 列出所有套接字(socket)单元</li><li><code>--state=</code> 列出指定状态的套接字(socket)单元</li></ul><pre><code class=language-bash># 格式
+$ systemctl list-sockets [PATTERN…]
+
+# 列出当前已加载到内存中的套接字(socket)单元，并按照监听地址排序。
+$ systemctl list-sockets
+
+# 列出已加载到内存中的套接字(socket)单元, 并显示套接字类型
+$ systemctl list-sockets --show-types
+</code></pre><hr><p><code>list-timers</code></p><p>列出当前已加载到内存中的定时器(timer)单元，并按照下次执行的时间点排序。</p><ul><li><code>--all</code> 列出所有定时器(timer)单元</li><li><code>--state=</code> 列出指定状态的定时器(timer)单元</li></ul><p>显示的信息列:</p><ul><li><code>NEXT</code> 列 显示下次执行的时间点</li><li><code>LEFT</code> 列 显示距离下次执行还剩多长时间</li><li><code>LAST</code> 列 显示上次执行的时间点</li><li><code>PASSED</code> 列 显示距离上次执行过去了多长时间</li><li><code>UNIT</code> 列 显示定时器单元的名称</li><li><code>ACTIVATES</code> 列 显示定时器单元将会启动的服务</li></ul><pre><code class=language-bash># 格式
+$ systemctl list-timers [PATTERN…]
+
+# 列出当前已加载到内存中的定时器(timer)单元，并按照下次执行的时间点排序。
+$ systemctl list-timers 
+
+# 列出所有定时器(timer)单元
+$ systemctl list-timers --all
+</code></pre><h3 id=status>status</h3><p>状态相关</p><pre><code class=language-bash># 格式
+$ systemctl status [PATTERN…|PID…]
+
+# 显示系统状态
+$ systemctl status
+
+# 显示 bluetooth.service 状态
+$ systemctl status bluetooth.service
+</code></pre><p>除了<code>status</code>命令，<code>systemctl</code>还提供了三个查询状态的简单方法，主要供脚本内部的判断语句使用。</p><pre><code class=language-bash># 显示某个 Unit 是否正在运行
+$ systemctl is-active application.service
+
+# 显示某个 Unit 是否处于启动失败状态
+$ systemctl is-failed application.service
+
+# 显示某个 Unit 服务是否建立了启动链接
+$ systemctl is-enabled application.service
+</code></pre><h3 id=unit管理>Unit管理</h3><pre><code class=language-bash># 立即启动一个服务
+$ sudo systemctl start apache.service
+
+# 立即停止一个服务
+$ sudo systemctl stop apache.service
+
+# 重启一个服务
+$ sudo systemctl restart apache.service
+
+# 杀死一个服务的所有子进程
+$ sudo systemctl kill apache.service
+
+# 重新加载一个服务的专属配置文件, 例如 httpd.conf; 注意区别单元配置文件
+$ sudo systemctl reload apache.service
+
+# 重载所有修改过的配置文件
+$ sudo systemctl daemon-reload
+
+# 显示某个 Unit 的所有底层参数
+$ systemctl show httpd.service
+
+# 显示某个 Unit 的指定属性的值
+$ systemctl show -p CPUShares httpd.service
+
+# 设置某个 Unit 的指定属性
+$ sudo systemctl set-property httpd.service CPUShares=500
+</code></pre><h3 id=依赖关系>依赖关系</h3><p><code>systemctl list-dependencies [UNIT]</code></p><p>显示单元的依赖关系。</p><p>如果没有明确指定单元的名称，那么表示显示 default.target 的依赖关系树。</p><p>默认情况下，仅以递归方式显示 target 单元的依赖关系树，而对于其他类型的单元，仅显示一层依赖关系(不递归)。 但如果使用了 <code>--all</code> 选项， 那么将对所有类型的单元都强制递归的显示完整的依赖关系树。</p><p>还可以使用 <code>--reverse</code>, <code>--after</code>, <code>--before</code> 选项指定 仅显示特定类型的依赖关系。</p><p>注意， 因为此命令仅列出当前已加载的单元(并不包含未加载单元中定义的依赖关系)， 所以，此命令不能全部列出反向依赖于指定单元的完整列表。</p><pre><code class=language-bash># 显示 default.target 的依赖关系树
+$ systemctl list-dependencies
+
+# 显示 ssh.service 的依赖关系树
+$ systemctl list-dependencies ssh.service
+
+# 递归显示 ssh.service 的依赖关系树
+$ systemctl list-dependencies ssh.service --all 
+</code></pre><h2 id=单元配置文件>单元配置文件</h2><p>每一个 Unit 都有一个配置文件，告诉 Systemd 怎么启动这个 Unit 。</p><p>systemd 将会从一组在编译时设定好的"单元目录"中加载单元文件(详见下面的两个表格)， 并且较先列出的目录拥有较高的优先级(细节见后文)。 也就是说，高优先级目录中的文件， 将会覆盖低优先级目录中的同名文件。</p><p>如果设置了 <code>$SYSTEMD_UNIT_PATH</code> 环境变量， 那么它将会取代预设的单元目录。 如果 <code>$SYSTEMD_UNIT_PATH</code> 以 &ldquo;<code>:</code>&rdquo; 结尾， 那么预设的单元目录将会被添加到该变量值的末尾。</p><p><strong>当 systemd 以系统实例(&ndash;system)运行时，加载单元的先后顺序(较前的目录优先级较高)：</strong></p><table><thead><tr><th>系统单元目录</th><th>描述</th></tr></thead><tbody><tr><td><code>/etc/systemd/system.control</code></td><td>通过 dbus API 创建的永久系统单元</td></tr><tr><td><code>/run/systemd/system.control</code></td><td>通过 dbus API 创建的临时系统单元</td></tr><tr><td><code>/run/systemd/transient</code></td><td>动态配置的临时单元(系统与全局用户共用)</td></tr><tr><td><code>/run/systemd/generator.early</code></td><td>生成的高优先级单元(系统与全局用户共用)</td></tr><tr><td><code>/etc/systemd/system</code></td><td>由管理员创建的系统单元</td></tr><tr><td><code>/run/systemd/system</code></td><td>运行时配置的系统单元</td></tr><tr><td><code>/run/systemd/generator</code></td><td>生成的中优先级系统单元</td></tr><tr><td><code>/usr/local/lib/systemd/system</code></td><td>管理员安装的系统单元</td></tr><tr><td><code>/usr/lib/systemd/system</code></td><td>发行版软件包安装的系统单元</td></tr><tr><td><code>/run/systemd/generator.late</code></td><td>生成的低优先级系统单元</td></tr></tbody></table><p><strong>当 systemd 以用户实例(&ndash;user)运行时，加载单元的先后顺序(较前的目录优先级较高)：</strong></p><table><thead><tr><th>用户单元目录</th><th>描述</th></tr></thead><tbody><tr><td><code>$XDG_CONFIG_HOME/systemd/user.control</code> 或 <code>~/.config/systemd/user.control</code></td><td>通过 dbus API 创建的永久私有用户单元(仅在未设置 $XDG_CONFIG_HOME 时才使用 ~/.config 来替代)</td></tr><tr><td><code>$XDG_RUNTIME_DIR/systemd/user.control</code></td><td>通过 dbus API 创建的临时私有用户单元</td></tr><tr><td><code>/run/systemd/transient</code></td><td>动态配置的临时单元(系统与全局用户共用)</td></tr><tr><td><code>/run/systemd/generator.early</code></td><td>生成的高优先级单元(系统与全局用户共用)</td></tr><tr><td><code>$XDG_CONFIG_HOME/systemd/user</code> 或 <code>$HOME/.config/systemd/user</code></td><td>用户配置的私有用户单元(仅在未设置 $XDG_CONFIG_HOME 时才使用 ~/.config 来替代)</td></tr><tr><td><code>$XDG_CONFIG_DIRS/systemd/user</code> 或 <code>/etc/xdg/systemd/user</code></td><td>XDG基本目录规范指定的其他配置目录（如果设置，则使用$XDG_CONFIG_DIRS，否则使用/etc/xdg）</td></tr><tr><td><code>/etc/systemd/user</code></td><td>管理员创建的用户单位</td></tr><tr><td><code>$XDG_RUNTIME_DIR/systemd/user</code></td><td>运行时配置的私有用户单元(仅当 $XDG_RUNTIME_DIR 已被设置时有效)</td></tr><tr><td><code>/run/systemd/user</code></td><td>运行时配置的全局用户单元</td></tr><tr><td><code>$XDG_RUNTIME_DIR/systemd/generator</code></td><td>生成的中优先级私有用户单元</td></tr><tr><td><code>$XDG_DATA_HOME/systemd/user</code> 或 <code>$HOME/.local/share/systemd/user</code></td><td>软件包安装在用户家目录中的私有用户单元(仅在未设置 $XDG_DATA_HOME 时才使用 ~/.local/share 来替代)</td></tr><tr><td><code>$XDG_DATA_DIRS/systemd/user</code> 或 <code>/usr/local/share/systemd/user</code> 和 <code>/usr/share/systemd/user</code></td><td>由XDG基本目录规范指定的其他数据目录</td></tr><tr><td><code>$dir/systemd/user</code>(对应 <code>$XDG_DATA_DIRS</code> 中的每一个目录($dir))</td><td>额外安装的全局用户单元，对应 $XDG_DATA_DIRS(默认值="/usr/local/share/:/usr/share/") 中的每一个目录</td></tr><tr><td><code>/usr/local/lib/systemd/user</code></td><td>管理员安装的全局用户单元</td></tr><tr><td><code>/usr/lib/systemd/user</code></td><td>发行版软件包安装的全局用户单元</td></tr><tr><td><code>$XDG_RUNTIME_DIR/systemd/generator.late</code></td><td>生成的低优先级私有用户单元</td></tr></tbody></table><p>可用<code>$ systemd-analyze unit-paths</code>查看相关单元文件路径:</p><pre><code class=language-bash>$ systemd-analyze unit-paths
+/etc/systemd/system.control
+/run/systemd/system.control
+/run/systemd/transient
+/run/systemd/generator.early
+/etc/systemd/system
+/etc/systemd/system.attached
+/run/systemd/system
+/run/systemd/system.attached
+/run/systemd/generator
+/usr/local/lib/systemd/system
+/lib/systemd/system
+/usr/lib/systemd/system
+/run/systemd/generator.late
+</code></pre><p>Systemd 默认从目录<code>/etc/systemd/system/</code>读取配置文件。但是，里面存放的大部分文件都是<strong>符号链接</strong>，指向目录<code>/usr/lib/systemd/system/</code>，真正的配置文件存放在此目录。</p><pre><code class=language-bash>$ ls -l /etc/systemd/system
+total 28
+drwxr-xr-x 2 root root 4096 Mar  3 21:06 bluetooth.target.wants
+lrwxrwxrwx 1 root root   42 Mar  3 21:08 dbus-fi.w1.wpa_supplicant1.service -&gt; /lib/systemd/system/wpa_supplicant.service
+lrwxrwxrwx 1 root root   37 Mar  3 21:06 dbus-org.bluez.service -&gt; /lib/systemd/system/bluetooth.service
+lrwxrwxrwx 1 root root   45 Mar  3 20:43 dbus-org.freedesktop.timesync1.service -&gt; /lib/systemd/system/systemd-timesyncd.service
+drwxr-xr-x 2 root root 4096 Mar  3 20:43 getty.target.wants
+drwxr-xr-x 2 root root 4096 Mar  3 21:08 multi-user.target.wants
+drwxr-xr-x 2 root root 4096 Mar  3 20:43 network-online.target.wants
+drwxr-xr-x 2 root root 4096 Mar  3 20:45 sockets.target.wants
+lrwxrwxrwx 1 root root   31 Mar  3 21:08 sshd.service -&gt; /lib/systemd/system/ssh.service
+drwxr-xr-x 2 root root 4096 Mar  3 20:46 sysinit.target.wants
+lrwxrwxrwx 1 root root   35 Mar  3 20:43 syslog.service -&gt; /lib/systemd/system/rsyslog.service
+drwxr-xr-x 2 root root 4096 Mar  3 21:08 timers.target.wants
+</code></pre><p><code>systemctl enable UNIT…|PATH…</code>命令用于启用指定的单元, 在上面两个目录之间，建立符号链接关系。</p><pre><code class=language-bash>$ sudo systemctl enable clamd@scan.service
+# 等同于
+$ sudo ln -s '/usr/lib/systemd/system/clamd@scan.service' '/etc/systemd/system/multi-user.target.wants/clamd@scan.service'
+</code></pre><p>如果<strong>配置文件</strong>里面设置了开机启动，<code>systemctl enable</code>命令相当于激活开机启动。</p><p>与之对应的，<code>systemctl disable</code>命令用于在两个目录之间，撤销符号链接关系，相当于撤销开机启动。</p><pre><code class=language-bash>$ sudo systemctl disable clamd@scan.service
+</code></pre><p>配置文件的后缀名，就是该 Unit 的种类，比如<code>sshd.socket</code>。如果省略，Systemd 默认后缀名为<code>.service</code>，所以sshd会被理解成<code>sshd.service</code>。</p><h3 id=状态>状态</h3><p><code>systemctl list-unit-files [PATTERN…]</code></p><p>列出所有已安装的单元配置文件及其状态.</p><pre><code class=language-bash># 列出所有已安装的单元配置文件及其状态.
+$ systemctl list-unit-files
+
+# 列出指定类型的单元配置文件及其状态.
+$ systemctl list-unit-files --type=service
+</code></pre><p>显示每个单元配置文件的状态，一共有四种。</p><ul><li><code>enabled</code>：已建立启动链接</li><li><code>disabled</code>：没建立启动链接</li><li><code>static</code>：该配置文件没有<code>[Install]</code>部分（无法执行），只能作为其他配置文件的依赖</li><li><code>masked</code>：该配置文件被禁止建立启动链接</li></ul><blockquote><p>注意，从配置文件的状态无法看出，该 Unit 是否正在运行。这必须执行前面提到的<code>systemctl status</code>命令。</p></blockquote><p>修改单元配置文件后, 需要重新加载:</p><pre><code class=language-bash># 注意区别 reload , reload 只是重载服务进程的专属配置, 例如 httpd.conf
+$ sudo systemctl daemon-reload
+</code></pre><h3 id=格式>格式</h3><p>单元配置文件就是普通的文本文件，类似于<code>.ini</code>风格的文件, 可以用文本编辑器打开。</p><p>语法可查看: <a href=http://www.jinbuguo.com/systemd/systemd.syntax.html>http://www.jinbuguo.com/systemd/systemd.syntax.html</a></p><p><code>systemctl cat NAME</code>命令可以查看单元配置文件的内容。</p><pre><code class=language-bash>$ systemctl cat ssh.service
+# /lib/systemd/system/ssh.service
+[Unit]
+Description=OpenBSD Secure Shell server
+Documentation=man:sshd(8) man:sshd_config(5)
+After=network.target auditd.service
+ConditionPathExists=!/etc/ssh/sshd_not_to_be_run
+
+[Service]
+EnvironmentFile=-/etc/default/ssh
+ExecStartPre=/usr/sbin/sshd -t
+ExecStart=/usr/sbin/sshd -D $SSHD_OPTS
+ExecReload=/usr/sbin/sshd -t
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=notify
+RuntimeDirectory=sshd
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+Alias=sshd.service
+</code></pre><p>从上面的输出可以看到，配置文件分成几个区块。每个区块的第一行，是用方括号表示的区块名，比如<code>[Unit]</code>。</p><blockquote><p>注意，配置文件的区块名和字段名，都是大小写敏感的。</p></blockquote><p>每个区块内部是一些等号连接的键值对。</p><blockquote><p>注意，键值对的等号两侧不能有空格。</p></blockquote><p>空行、以 &ldquo;<code>#</code>&rdquo; 或 &ldquo;<code>;</code>&rdquo; 开头的行(用作注释) 都将被忽略。</p><p>行尾的反斜线(<code>\</code>)是续行符，表示将下一行拼接到本行末尾，同时将反斜线本身替换为一个空格。 这样可以将一个超长的行分拆为几个较短的行。</p><p>配置文件中的<strong>布尔值</strong>可以有多种写法。 真值可以写为： <code>1, yes, true, on</code> 之一，假值可以写为： <code>0, no, false, off</code> 之一。</p><p>配置文件中的时间长度可以有多种写法：不带任何后缀的一个纯数值表示秒数； 亦可在纯数值后面加上时间单位； 亦可以将多个带有时间单位后缀的时间长度使用空格连接起来，表示这几段时间长度之和。 例如： &ldquo;50&rdquo; 表示50秒； &ldquo;2min 200ms&rdquo; 表示2分200毫秒，也就是120200毫秒； 可使用的时间单位如下： &ldquo;s&rdquo;, &ldquo;min&rdquo;, &ldquo;h&rdquo;, &ldquo;d&rdquo;, &ldquo;w&rdquo;, &ldquo;ms&rdquo;, &ldquo;us&rdquo; 。</p><h3 id=unit><code>[Unit]</code></h3><p><a href=http://www.jinbuguo.com/systemd/systemd.unit.html>http://www.jinbuguo.com/systemd/systemd.unit.html</a></p><p><code>[Unit]</code>区块通常是配置文件的第一个区块，用来定义 Unit 的元数据，以及配置与其他 Unit 的关系。常用指令:</p><ul><li><code>Description</code>
+有利于人类阅读的、对单元进行简单描述的字符串。</li><li><code>Documentation</code>
+文档地址. 可接受 &ldquo;http://&rdquo;, &ldquo;https://&rdquo;, &ldquo;file:&rdquo;, &ldquo;info:&rdquo;, &ldquo;man:&rdquo; 五种URI类型</li><li><code>Requires</code>
+当前 Unit 依赖的其他 Unit，如果它们没有运行，当前 Unit 会启动失败</li><li><code>Wants</code>
+此选项是 Requires 的弱化版。 当此单元被启动时， 所有这里列出的其他单元只是尽可能被启动。 但是，即使某些单元不存在或者未能启动成功， 也不会影响此单元的启动。 推荐使用此选项来设置单元之间的依赖关系。</li><li><code>BindsTo</code>
+与 Requires 类似，但是依赖性更强： 如果这里列出的任意一个单元停止运行或者崩溃，那么也会连带导致该单元自身被停止。 这就意味着该单元可能因为 这里列出的任意一个单元的 主动退出、某个设备被拔出、某个挂载点被卸载， 而被强行停止。</li><li><code>PartOf</code>
+与 Requires 类似， 不同之处在于：仅作用于单元的停止或重启。 其含义是，当停止或重启这里列出的某个单元时， 也会同时停止或重启该单元自身。 注意，这个依赖是单向的， 该单元自身的停止或重启并不影响这里列出的单元。</li><li><code>Conflicts</code>
+指定单元之间的冲突关系。 接受一个空格分隔的单元列表，表明该单元不能与列表中的任何单元共存， 也就是说：(1)当此单元启动的时候，列表中的所有单元都将被停止； (2)当列表中的某个单元启动的时候，该单元同样也将被停止。 注意，此选项与 After= 和 Before= 选项没有任何关系。</li><li><code>Before</code>
+假定 foo.service 单元包含 Before=bar.service 设置， 那么当两个单元都需要启动的时候， bar.service 将会一直延迟到 foo.service 启动完毕之后再启动。 注意，停止顺序与启动顺序正好相反，也就是说， 只有当 bar.service 完全停止后，才会停止 foo.service 单元。</li><li><code>After</code>
+假定 foo.service 单元包含 After=bar.service 设置， 那么当两个单元都需要启动的时候， foo.service 将会一直延迟到 bar.service 启动完毕之后再启动。 注意，停止顺序与启动顺序正好相反，也就是说， 只有当 foo.service 完全停止后，才会停止 bar.service 单元。</li><li><code>OnFailure</code>
+当该单元进入失败(&ldquo;failed&rdquo;)状态时， 将会启动列表中的单元。</li><li><code>Condition...</code>
+当前 Unit 运行必须满足的条件，否则不会运行</li><li><code>Assert...</code>
+当前 Unit 运行必须满足的条件，否则会报启动失败</li></ul><h3 id=install><code>[Install]</code></h3><p><a href=http://www.jinbuguo.com/systemd/systemd.unit.html>http://www.jinbuguo.com/systemd/systemd.unit.html</a></p><p>用来定义如何启动，以及是否开机启动。它的主要字段如下:</p><ul><li><code>Alias</code>
+启用时使用的别名，可以设为一个空格分隔的别名列表。 每个别名的后缀(也就是单元类型)都必须与该单元自身的后缀相同。</li><li><code>Also</code>
+设置此单元的附属单元， 可以设为一个空格分隔的单元列表。 表示当使用 systemctl enable 启用 或 systemctl disable 停用 此单元时， 也同时自动的启用或停用附属单元。</li><li><code>WantedBy</code></li><li><code>RequiredBy</code>
+接受一个空格分隔的单元列表， 表示在使用 systemctl enable 启用此单元时， 将会在<code>/etc/systemd/system</code>目录中每个列表单元的 .wants/ 或 .requires/ 目录中创建一个指向该单元文件的软连接。 这相当于为每个列表中的单元文件添加了 Wants=此单元 或 Requires=此单元 选项。 这样当列表中的任意一个单元启动时，该单元都会被启动。</li></ul><p>例如, 上面的ssh.service单元配置文件在<code>/etc/systemd/system</code>目录创建的软链接:</p><pre><code class=language-bash>$ ls -l /etc/systemd/system/multi-user.target.wants/
+total 0
+lrwxrwxrwx 1 root root 35 Mar  3 21:06 anacron.service -&gt; /lib/systemd/system/anacron.service
+lrwxrwxrwx 1 root root 41 Mar  3 20:46 console-setup.service -&gt; /lib/systemd/system/console-setup.service
+lrwxrwxrwx 1 root root 32 Mar  3 20:43 cron.service -&gt; /lib/systemd/system/cron.service
+lrwxrwxrwx 1 root root 38 Mar  3 20:43 networking.service -&gt; /lib/systemd/system/networking.service
+lrwxrwxrwx 1 root root 36 Mar  3 20:43 remote-fs.target -&gt; /lib/systemd/system/remote-fs.target
+lrwxrwxrwx 1 root root 35 Mar  3 20:43 rsyslog.service -&gt; /lib/systemd/system/rsyslog.service
+lrwxrwxrwx 1 root root 31 Mar  3 21:08 ssh.service -&gt; /lib/systemd/system/ssh.service
+lrwxrwxrwx 1 root root 42 Mar  3 21:08 wpa_supplicant.service -&gt; /lib/systemd/system/wpa_supplicant.service
+</code></pre><h3 id=service><code>[Service]</code></h3><p><a href=http://www.jinbuguo.com/systemd/systemd.unit.html>http://www.jinbuguo.com/systemd/systemd.unit.html</a></p><p>用于 Service 的配置，只有 Service 类型的 Unit 才有这个区块。它的主要字段如下:</p><ul><li><code>Type</code>：定义启动时的进程行为。它有以下几种值。<ul><li><code>Type=simple</code>：默认值，执行ExecStart指定的命令，启动主进程</li><li><code>Type=forking</code>：以 fork 方式从父进程创建子进程，创建后父进程会立即退出</li><li><code>Type=oneshot</code>：一次性进程，Systemd 会等当前服务退出，再继续往下执行</li><li><code>Type=dbus</code>：当前服务通过D-Bus启动</li><li><code>Type=notify</code>：当前服务启动完毕，会通知Systemd，再继续往下执行</li><li><code>Type=idle</code>：若有其他任务执行完毕，当前服务才会运行</li></ul></li><li><code>ExecStart</code>：启动当前服务的命令</li><li><code>ExecStartPre</code>：启动当前服务之前执行的命令</li><li><code>ExecStartPost</code>：启动当前服务之后执行的命令</li><li><code>ExecReload</code>：重启当前服务时执行的命令</li><li><code>ExecStop</code>：停止当前服务时执行的命令</li><li><code>ExecStopPost</code>：停止当其服务之后执行的命令</li><li><code>RestartSec</code>：自动重启当前服务间隔的秒数</li><li><code>Restart</code>：定义何种情况 Systemd 会自动重启当前服务，可能的值包括always（总是重启）、on-success、on-failure、on-abnormal、on-abort、on-watchdog</li><li><code>TimeoutSec</code>：定义 Systemd 停止当前服务之前等待的秒数</li><li><code>Environment</code>：指定环境变量</li></ul><h2 id=target>Target</h2><p>启动计算机的时候，需要启动大量的 Unit。如果每一次启动，都要一一写明本次启动需要哪些 Unit，显然非常不方便。Systemd 的解决方案就是 Target。</p><p>简单说，Target 就是一个 Unit 组，包含许多相关的 Unit 。启动某个 Target 的时候，Systemd 就会启动里面所有的 Unit。从这个意义上说，Target 这个概念类似于"状态点"，启动某个 Target 就好比启动到某种状态。</p><p>传统的<code>init</code>启动模式里面，有 RunLevel 的概念，跟 Target 的作用很类似。不同的是，RunLevel 是互斥的，不可能多个 RunLevel 同时启动，但是多个 Target 可以同时启动。</p><pre><code class=language-bash># 查看运行中的 target
+$ systemctl list-units --type=target
+
+# 查看所有的 target
+$ systemctl list-units --type=target --all
+
+# 列出已安装的target单元配置文件及其状态.
+$ systemctl list-unit-files --type=target
+
+# 查看某个 Target 包含的依赖
+$ systemctl list-dependencies multi-user.target
+
+# 查看启动时的默认 Target
+$ systemctl get-default
+
+# 设置启动时的默认 Target
+$ sudo systemctl set-default multi-user.target
+
+# 切换 Target 时，默认不关闭前一个 Target 启动的进程，
+# systemctl isolate 命令改变这种行为，
+# 关闭前一个 Target 里面所有不属于后一个 Target 的进程
+$ sudo systemctl isolate multi-user.target
+</code></pre><p>Target 与 传统 RunLevel 的对应关系如下:</p><pre><code class=language-bash>Traditional runlevel      New target name     Symbolically linked to...
+
+Runlevel 0           |    runlevel0.target -&gt; poweroff.target
+Runlevel 1           |    runlevel1.target -&gt; rescue.target
+Runlevel 2           |    runlevel2.target -&gt; multi-user.target
+Runlevel 3           |    runlevel3.target -&gt; multi-user.target
+Runlevel 4           |    runlevel4.target -&gt; multi-user.target
+Runlevel 5           |    runlevel5.target -&gt; graphical.target
+Runlevel 6           |    runlevel6.target -&gt; reboot.target
+</code></pre><p>它与init进程的主要差别如下:
+（1）默认的 RunLevel（在<code>/etc/inittab</code>文件设置）现在被默认的 Target 取代，位置是<code>/etc/systemd/system/default.target</code>，通常符号链接到<code>graphical.target</code>（图形界面）或者<code>multi-user.target</code>（多用户命令行）。</p><p>（2）启动脚本的位置，以前是<code>/etc/init.d</code>目录，符号链接到不同的 RunLevel 目录 （比如<code>/etc/rc3.d</code>、<code>/etc/rc5.d</code>等），现在则存放在<code>/lib/systemd/system</code>和<code>/etc/systemd/system</code>目录。</p><p>（3）配置文件的位置，以前init进程的配置文件是<code>/etc/inittab</code>，各种服务的配置文件存放在<code>/etc/sysconfig</code>目录。现在的配置文件主要存放在<code>/lib/systemd</code>目录，在<code>/etc/systemd</code>目录里面的修改可以覆盖原始设置。</p><h2 id=日志管理>日志管理</h2><p>Systemd 统一管理所有 Unit 的启动日志。带来的好处就是，可以只用<code>journalctl</code>一个命令，查看所有日志（内核日志和应用日志）。日志的配置文件是<code>/etc/systemd/journald.conf</code>。</p><pre><code class=language-bash># 查看所有日志（默认情况下 ，只保存本次启动的日志）
+$ sudo journalctl
+
+# 查看内核日志（不显示应用日志）
+$ sudo journalctl -k
+
+# 实时滚动显示最新日志
+$ sudo journalctl -f
+
+# 显示尾部的最新10行日志
+$ sudo journalctl -n
+
+# 显示尾部指定行数的日志
+$ sudo journalctl -n 20
+
+# 反转日志行的输出顺序，也就是显示最新的日志
+$ sudo journalctl -r
+
+# 以人类易于阅读的json格式输出
+$ sudo journalctl -o json-pretty
+
+# 查看系统本次启动的日志
+$ sudo journalctl -b
+$ sudo journalctl -b -0
+
+# 查看上一次启动的日志（需更改设置）
+$ sudo journalctl -b -1
+
+# 查看指定单元的日志
+# 如: sudo journalctl -u ssh.service
+$ sudo journalctl -u UNIT|PATTERN
+
+# 查看属于特定用户会话单元的日志
+$ sudo journalctl --user-unit=qlel
+
+# 根据日志等级过滤输出, 仅显示小于或等于此等级的日志
+# 等级对应关系: &quot;emerg&quot; (0), &quot;alert&quot; (1), &quot;crit&quot; (2), &quot;err&quot; (3),
+# &quot;warning&quot; (4), &quot;notice&quot; (5), &quot;info&quot; (6), &quot;debug&quot; (7)
+$ sudo journalctl -p 6
+
+# -S, --since= 显示晚于指定时间的日志
+# -U, --until= 显示早于指定时间的日志
+# 参数的格式类似 &quot;2012-10-30 18:17:16&quot;, 
+# 具体看http://www.jinbuguo.com/systemd/systemd.time.html
+$ sudo journalctl -S '2021-03-07 12:00:00'
+$ sudo journalctl -S '2021-03-07 12:00:00' -U '2021-03-07 13:00:00'
+$ sudo journalctl -S '2 min ago'
+$ sudo journalctl -S yesterday
+
+# 查看指定服务的日志
+$ sudo journalctl /usr/lib/systemd/systemd
+
+# 查看指定进程的日志
+$ sudo journalctl _PID=1
+
+# 查看某个路径的脚本的日志
+$ sudo journalctl /usr/bin/bash
+
+# 查看指定用户的日志
+$ sudo journalctl _UID=33 --since today
+
+# 日志默认分页输出，--no-pager 改为正常的标准输出
+$ sudo journalctl --no-pager
+
+# 显示所有日志磁盘占用总量
+$ sudo journalctl --disk-usage
+
+# 限制日志归档文件的最大磁盘使用量(可以使用 &quot;K&quot;, &quot;M&quot;, &quot;G&quot;, &quot;T&quot; 后缀)
+$ sudo journalctl --vacuum-size=1G
+
+# 指定日志文件保存多久
+# 可以使用 &quot;s&quot;, &quot;m&quot;, &quot;h&quot;, &quot;days&quot;, &quot;weeks&quot;, &quot;months&quot;, &quot;years&quot; 后缀
+$ sudo journalctl --vacuum-time=1years
+
+# 限制日志归档文件的最大数量
+$ sudo journalctl --vacuum-files=
+</code></pre><h2 id=timer>Timer</h2><p>中文文档: <a href=http://www.jinbuguo.com/systemd/systemd.timer.html>http://www.jinbuguo.com/systemd/systemd.timer.html</a></p><p>以 &ldquo;<code>.timer</code>&rdquo; 为后缀的单元文件， 封装了一个由 systemd 管理的定时器， 以支持基于定时器的启动。</p><p>每个定时器单元都必须有一个与其匹配的单元，用于在特定的时间启动。可以在单元配置文件中<code>[Timer]</code>小结通过指令 <code>Unit=</code> 明确指定要匹配的单元。若未指定，则默认是与该单元名称相同的 <code>.service</code> 单元(不算后缀)。例如 <code>foo.timer</code> 默认匹配 <code>foo.service</code> 单元。</p><blockquote><p>注意，如果在启动时间点到来的时候，匹配的单元已经被启动， 那么将不执行任何动作，也不会启动任何新的服务实例。 因此，那些设置了 <code>RemainAfterExit=yes</code>(当该服务的所有进程全部退出之后，依然将此服务视为处于活动状态) 的服务单元一般不适合使用基于定时器的启动。 因为这样的单元仅会被启动一次，然后就永远处于活动(active)状态了。</p></blockquote><p>此单元文件配置文件中有专门的<code>[Timer]</code>小结, 下面有一些配置指令:</p><ul><li><code>OnActiveSec</code>
+定时器生效后，多少时间开始执行任务</li><li><code>OnBootSec</code>
+系统启动后，多少时间开始执行任务</li><li><code>OnStartupSec</code>
+Systemd 进程启动后，多少时间开始执行任务</li><li><code>OnUnitActiveSec</code>
+该单元上次执行后，等多少时间再次执行</li><li><code>OnUnitInactiveSec</code>
+定时器上次关闭后多少时间，再次执行</li><li><code>OnCalendar</code>
+基于绝对时间，而不是相对时间执行. 如果定时器单元在启动时已经超过了该指令设置的某个触发时间，那么错过就错过了，不会尝试去补救，只能等待下一个触发时间。受到 AccuracySec 选项的影响</li><li><code>AccuracySec</code>
+设置定时器的触发精度。如果因为各种原因，任务必须推迟执行，推迟的最大秒数，默认是60秒</li><li><code>RandomizedDelaySec</code>
+将此单元的定时器随机延迟一小段时间， 这一小段时间的长度 介于零到该指令设置的时间长度之间， 以均匀概率分布。 默认值是零，表示不延迟。</li><li><code>Unit</code>
+真正要执行的任务单元，默认是同名的带有<code>.service</code>后缀的单元</li><li><code>Persistent</code>
+此选项仅对 <code>OnCalendar</code> 指令定义的日历定时器有意义。 若设为"true"，则表示将匹配单元的上次触发时间永久保存在磁盘上。 这样，当定时器单元再次被启动时， 如果匹配单元本应该在定时器单元停止期间至少被启动一次， 那么将立即启动匹配单元。 这样就不会因为关机而错过必须执行的任务。 默认值为 false
+在计时器单元上使用<code>systemctl clean --what = state…</code>从磁盘上删除此选项维护的时间戳文件。 特别是，在卸载计时器单元之前，请使用此命令。</li><li><code>WakeSystem</code>
+若设为"true"， 则表示当某个定时器到达触发时间点时， 唤醒正在休眠的系统并阻止系统进入休眠状态。 注意， 此选项仅确保唤醒系统， 而不关心任务执行完成之后是否需要再次休眠系统。 默认值为 false</li></ul><h3 id=时间格式>时间格式</h3><p><a href=http://www.jinbuguo.com/systemd/systemd.time.html>http://www.jinbuguo.com/systemd/systemd.time.html</a></p><table><thead><tr><th>语法</th><th>说明</th></tr></thead><tbody><tr><td><code>usec</code>, <code>us</code>, <code>µs</code></td><td>微秒</td></tr><tr><td><code>msec</code>, <code>ms</code></td><td>毫秒</td></tr><tr><td><code>seconds</code>, <code>second</code>, <code>sec</code>, <code>s</code></td><td>秒</td></tr><tr><td><code>minutes</code>, <code>minute</code>, <code>min</code>, <code>m</code></td><td>分钟</td></tr><tr><td><code>hours</code>, <code>hour</code>, <code>hr</code>, <code>h</code></td><td>小时</td></tr><tr><td><code>days</code>, <code>day</code>, <code>d</code></td><td>天</td></tr><tr><td><code>weeks</code>, <code>week</code>, <code>w</code></td><td>星期</td></tr><tr><td><code>months</code>, <code>month</code>, <code>M</code></td><td>月[=30.44天]</td></tr><tr><td><code>years</code>, <code>year</code>, <code>y</code></td><td>年[=365.25天]</td></tr></tbody></table><p>下面是一些有效的时长字符串实例：</p><pre><code class=language-bash>2 h
+2hours
+48hr
+1y 12month
+55s500ms
+300ms20s 5day
+</code></pre><ul><li><code>OnUnitActiveSec=1h</code>
+表示一小时执行一次任务</li><li><code>OnCalendar=*-*-* 02:00:00</code>
+表示每天凌晨两点执行.
+这是日历事件表达式, 类似于专用于时间戳的正则表达式</li><li><code>OnCalendar=Mon *-*-* 02:00:00</code></li></ul><h3 id=service和timer示例>Service和Timer示例</h3><p>自定义一个定时任务——每过30s就向msg.txt输入当前时间.</p><ol><li>创建一个shell脚本: <code>abcd.sh</code></li></ol><pre><code class=language-bash>$ nano abcd.sh
+
+# 查看 abcd.sh 内容
+$ cat abcd.sh
+#!/bin/bash
+date &gt;&gt; /home/qlel/msg.txt
+echo 'hello abcddddddddd'
+
+# 赋予执行权限
+$ chmod +x ./abcd.sh
+
+# 执行2次看看
+$ ./abcd.sh
+
+# 查看是否执行成功
+$ cat msg.txt
+Mon 08 Mar 2021 05:59:18 PM CST
+Mon 08 Mar 2021 05:59:23 PM CST
+</code></pre><p>再创建一个python文件脚本: <code>py_test.py</code>:</p><pre><code class=language-py>import time
+
+now_time = time.strftime('%Y-%m-%d %H:%M:%S') + '\n'
+
+with open('/home/qlel/py_msg.txt','a') as f:
+        f.write(now_time)
+</code></pre><p>执行2次看看:</p><pre><code class=language-bash>$ python3 /home/qlel/py_test.py
+$ python3 /home/qlel/py_test.py
+$ cat /home/qlel/py_msg.txt
+2021-03-08 18:00:06
+2021-03-08 18:00:10
+</code></pre><ol start=2><li>创建要执行的 Service 单元</li></ol><p>使用命令<code>sudo systemctl edit --force --full mytimer.service</code>会自动创建<code>/etc/systemd/system/mytimer.service</code>.</p><ul><li><code>--force</code>
+如果指定的单元文件不存在，那么将会强制打开一个新的空单元文件以供编辑。</li><li><code>--full</code>
+表示使用新编辑的单元文件完全取代原始单元文件，否则默认将新编辑的单元配置片段附加到原始单元文件的末尾</li></ul><p>写入以下内容:</p><pre><code class=language-ini>[Unit]
+Description=mytimer service
+
+[Service]
+ExecStart=/home/qlel/abcd.sh
+ExecStartPost=python3 /home/qlel/py_test.py
+</code></pre><blockquote><p>注意, 单元文件中都要使用<strong>绝对路径</strong>, 还有使用到的<strong>脚本文件中的内容</strong>也要使用<strong>绝对路径</strong></p></blockquote><ol start=3><li>启动<code>mytimer.service</code>单元:</li></ol><pre><code class=language-bash>$ sudo systemctl start mytimer.service
+qlel@debianqlel:~$ systemctl status mytimer.service
+● mytimer.service - mytimer service
+   Loaded: loaded (/etc/systemd/system/mytimer.service; static; vendor preset: enabled)
+   Active: inactive (dead)
+</code></pre><ol start=4><li>查看结果和日志</li></ol><pre><code class=language-bash>~$ cat ./msg.txt
+Mon 08 Mar 2021 05:59:18 PM CST
+Mon 08 Mar 2021 05:59:23 PM CST
+Mon 08 Mar 2021 06:05:49 PM CST
+~$ cat ./py_msg.txt
+2021-03-08 18:00:06
+2021-03-08 18:00:10
+2021-03-08 18:05:49
+~$ sudo journalctl -u mytimer.service -n 6
+-- Logs begin at Sun 2021-03-07 17:17:01 CST, end at Mon 2021-03-08 18:08:32 CST. --
+Mar 08 17:53:47 debianqlel systemd[1]: mytimer.service: Succeeded.
+Mar 08 17:53:47 debianqlel systemd[1]: Started mytimer service.
+Mar 08 18:05:49 debianqlel systemd[1]: Starting mytimer service...
+Mar 08 18:05:49 debianqlel abcd.sh[3927]: hello abcddddddddd
+Mar 08 18:05:49 debianqlel systemd[1]: mytimer.service: Succeeded.
+Mar 08 18:05:49 debianqlel systemd[1]: Started mytimer service.
+</code></pre><ol start=5><li>创建 Timer 单元</li></ol><p>使用<code>sudo systemctl edit --force --full myytimer.timer</code>会自动创建<code>/etc/systemd/system/myytimer.timer</code></p><p>写入以下内容:</p><pre><code class=language-ini># /etc/systemd/system/myytimer.timer
+[Unit]
+Description=每10s运行mytimer.service单元
+
+[Timer]
+OnActiveSec=1s
+AccuracySec=1us
+OnUnitActiveSec=10s
+Unit=mytimer.service
+
+[Install]
+WantedBy=multi-user.target
+</code></pre><p>以上配置说明:</p><ul><li><code>OnActiveSec=1s</code>表示定时器生效后1s执行一次<code>mytimer.service</code>(只在定时器生效后执行一次)</li><li><code>AccuracySec=1us</code>表示精度为1微秒, 默认是60秒</li><li><code>OnUnitActiveSec=10s</code>表示该单元上次执行后10s执行一次(可用于循环执行)</li></ul><blockquote><p>注意, 只有<code>OnUnitActiveSec=10s</code>是不会执行的</p></blockquote><ul><li><code>[Install]</code>表示当使用<code>sudo systemctl enable...</code>设置开机自启动</li><li><code>WantedBy=multi-user.target</code> 详情请看<code>[Install]</code>章节</li></ul><ol start=6><li>启动定时器</li></ol><pre><code class=language-bash># 启动定时器
+~$ sudo systemctl start myytimer.timer
+
+# 查看状态
+~$ systemctl status myytimer.timer
+● myytimer.timer - 每10s运行mytimer.service单元
+   Loaded: loaded (/etc/systemd/system/myytimer.timer; disabled; vendor preset: enabled)
+   Active: active (waiting) since Mon 2021-03-08 21:13:48 CST; 6s ago
+  Trigger: Mon 2021-03-08 21:13:59 CST; 4s left
+
+# 查看结果
+~$ cat py_msg.txt
+2021-03-08 21:13:49
+2021-03-08 21:13:59
+2021-03-08 21:14:09
+2021-03-08 21:14:19
+2021-03-08 21:14:29
+
+~$ systemctl list-timers
+NEXT                         LEFT          LAST                         PASSED       UNIT                         ACTIVATE
+Mon 2021-03-08 21:15:19 CST  3s left       Mon 2021-03-08 21:15:09 CST  6s ago       myytimer.timer               mytimer.
+Mon 2021-03-08 21:33:47 CST  18min left    Mon 2021-03-08 20:34:21 CST  40min ago    anacron.timer                anacron.
+Tue 2021-03-09 00:00:00 CST  2h 44min left Mon 2021-03-08 00:00:38 CST  21h ago      logrotate.timer              logrotat
+Tue 2021-03-09 00:00:00 CST  2h 44min left Mon 2021-03-08 00:00:38 CST  21h ago      man-db.timer                 man-db.s
+Tue 2021-03-09 06:26:32 CST  9h left       Mon 2021-03-08 19:55:38 CST  1h 19min ago apt-daily.timer              apt-dail
+Tue 2021-03-09 06:51:08 CST  9h left       Mon 2021-03-08 06:08:38 CST  15h ago      apt-daily-upgrade.timer      apt-dail
+Tue 2021-03-09 13:13:38 CST  15h left      Mon 2021-03-08 13:13:38 CST  8h ago       systemd-tmpfiles-clean.timer systemd-
+
+7 timers listed.
+Pass --all to see loaded but inactive timers, too.
+
+# 停止定时器 myytimer.timer
+~$ sudo systemctl stop myytimer.timer
+
+# 状态
+~$ systemctl status myytimer.timer
+● myytimer.timer - 每10s运行mytimer.service单元
+   Loaded: loaded (/etc/systemd/system/myytimer.timer; disabled; vendor preset: enabled)
+   Active: inactive (dead)
+  Trigger: n/a
+</code></pre><p>如果需要设置开机自启动:</p><pre><code class=language-bash># 设置开机自启动
+~$ sudo systemctl enable myytimer.timer
+[sudo] password for qlel:
+Created symlink /etc/systemd/system/multi-user.target.wants/myytimer.timer → /etc/systemd/system/myytimer.timer.
+
+# 取消开机自启动
+~$ sudo systemctl disable myytimer.timer
+Removed /etc/systemd/system/multi-user.target.wants/myytimer.timer.
+</code></pre><p>如果要删除<code>myytimer.timer</code>定时器, 直接删除<code>myytimer.timer</code>单元文件即可.</p><h3 id=自启动测试>自启动测试</h3><p>设置某个脚本开机自启测试。
+<code>test_sys_startup.sh</code>脚本：</p><pre><code class=language-bash>#!/usr/bin/env bash
+
+date &quot;+%Y-%m-%d %H:%M:%S&quot; &gt;&gt; /home/qlel/my_test_sys.txt
+echo &quot;启动测试&quot; &gt;&gt; /home/qlel/my_test_sys.txt
+</code></pre><p>切换到root用户，编写service单元文件：</p><pre><code class=language-bash>$ systemctl edit --force --full test01.service
+</code></pre><p><code>test02.service</code>文件：</p><pre><code class=language-ini>[Unit]
+Description=自启动测试
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=bash /home/qlel/test_sys_startup.sh
+User=qlel
+Group=qlel
+
+[Install]
+WantedBy=multi-user.target
+</code></pre><p>如果修改了文件要重新加载：</p><pre><code class=language-bash>$ systemctl daemon-reload
+</code></pre><p>启动测试是否成功：</p><pre><code class=language-bash>$ systemctl start test02.service
+$ systemctl status test02.service
+● test02.service - 自启动测试
+   Loaded: loaded (/etc/systemd/system/test02.service; disabled; vendor preset: enabled)
+   Active: inactive (dead)
+
+Jun 17 10:32:36 debianqlel systemd[1]: Starting 自启动测试...
+Jun 17 10:32:36 debianqlel systemd[1]: test02.service: Succeeded.
+Jun 17 10:32:36 debianqlel systemd[1]: Started 自启动测试
+</code></pre><p>用户设置开机自启动该脚本：</p><pre><code class=language-bash>$ systemctl enable test02.service
+Created symlink /etc/systemd/system/multi-user.target.wants/test02.service → /etc/systemd/system/test02.service.
+</code></pre><p>查看：</p><pre><code class=language-bash>$ systemctl list-unit-files --user test01*
+UNIT FILE      STATE
+test01.service enabled
+
+1 unit files listed.
+</code></pre><p>重启系统测试。</p></div></article></div><aside class="col-12 col-md-3 float-left sidebar"><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
+<span><a href=/tags/bash/>bash</a></span>
+<span><a href=/tags/dos/>dos</a></span>
+<span><a href=/tags/iproute2/>iproute2</a></span>
+<span><a href=/tags/js/>js</a></span>
+<span><a href=/tags/linux/>linux</a></span>
+<span><a href=/tags/mysql/>mysql</a></span>
+<span><a href=/tags/nginx/>nginx</a></span>
+<span><a href=/tags/php/>php</a></span>
+<span><a href=/tags/powershell/>powershell</a></span>
+<span><a href=/tags/python/>python</a></span>
+<span><a href=/tags/sed/>sed</a></span>
+<span><a href=/tags/sftp/>sftp</a></span>
+<span><a href=/tags/shell/>shell</a></span>
+<span><a href=/tags/ssh/>ssh</a></span>
+<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#概念>概念</a></li><li><a href=#系统管理>系统管理</a><ul><li><a href=#systemctl>systemctl</a></li><li><a href=#systemd-analyze>systemd-analyze</a></li><li><a href=#hostnamectl>hostnamectl</a></li><li><a href=#localectl>localectl</a></li><li><a href=#timedatectl>timedatectl</a></li><li><a href=#loginctl>loginctl</a></li></ul></li><li><a href=#单元unit>单元Unit</a><ul><li><a href=#list相关>list相关</a></li><li><a href=#status>status</a></li><li><a href=#unit管理>Unit管理</a></li><li><a href=#依赖关系>依赖关系</a></li></ul></li><li><a href=#单元配置文件>单元配置文件</a><ul><li><a href=#状态>状态</a></li><li><a href=#格式>格式</a></li><li><a href=#unit><code>[Unit]</code></a></li><li><a href=#install><code>[Install]</code></a></li><li><a href=#service><code>[Service]</code></a></li></ul></li><li><a href=#target>Target</a></li><li><a href=#日志管理>日志管理</a></li><li><a href=#timer>Timer</a><ul><li><a href=#时间格式>时间格式</a></li><li><a href=#service和timer示例>Service和Timer示例</a></li><li><a href=#自启动测试>自启动测试</a></li></ul></li></ul></li></ul></nav></div></aside></div><div class=btn><div class=btn-menu id=btn-menu><i class="iconfont icon-grid-sharp"></i></div><div class=btn-toggle-mode><i class="iconfont icon-contrast-sharp"></i></div><div class=btn-scroll-top><i class="iconfont icon-chevron-up-circle-sharp"></i></div></div><aside class=sidebar-mobile style=display:none><div class=sidebar-wrapper><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
+<span><a href=/tags/bash/>bash</a></span>
+<span><a href=/tags/dos/>dos</a></span>
+<span><a href=/tags/iproute2/>iproute2</a></span>
+<span><a href=/tags/js/>js</a></span>
+<span><a href=/tags/linux/>linux</a></span>
+<span><a href=/tags/mysql/>mysql</a></span>
+<span><a href=/tags/nginx/>nginx</a></span>
+<span><a href=/tags/php/>php</a></span>
+<span><a href=/tags/powershell/>powershell</a></span>
+<span><a href=/tags/python/>python</a></span>
+<span><a href=/tags/sed/>sed</a></span>
+<span><a href=/tags/sftp/>sftp</a></span>
+<span><a href=/tags/shell/>shell</a></span>
+<span><a href=/tags/ssh/>ssh</a></span>
+<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#概念>概念</a></li><li><a href=#系统管理>系统管理</a><ul><li><a href=#systemctl>systemctl</a></li><li><a href=#systemd-analyze>systemd-analyze</a></li><li><a href=#hostnamectl>hostnamectl</a></li><li><a href=#localectl>localectl</a></li><li><a href=#timedatectl>timedatectl</a></li><li><a href=#loginctl>loginctl</a></li></ul></li><li><a href=#单元unit>单元Unit</a><ul><li><a href=#list相关>list相关</a></li><li><a href=#status>status</a></li><li><a href=#unit管理>Unit管理</a></li><li><a href=#依赖关系>依赖关系</a></li></ul></li><li><a href=#单元配置文件>单元配置文件</a><ul><li><a href=#状态>状态</a></li><li><a href=#格式>格式</a></li><li><a href=#unit><code>[Unit]</code></a></li><li><a href=#install><code>[Install]</code></a></li><li><a href=#service><code>[Service]</code></a></li></ul></li><li><a href=#target>Target</a></li><li><a href=#日志管理>日志管理</a></li><li><a href=#timer>Timer</a><ul><li><a href=#时间格式>时间格式</a></li><li><a href=#service和timer示例>Service和Timer示例</a></li><li><a href=#自启动测试>自启动测试</a></li></ul></li></ul></li></ul></nav></div></div></aside></main><footer><div class="container-lg clearfix"><div class="col-12 footer"><span>&copy; 2020-2021
+<a href=/>qlel</a>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建</span></div></div></footer><script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script><script defer src=/assets/js/fuji.min.js></script></body></html>

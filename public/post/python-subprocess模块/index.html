@@ -1,0 +1,69 @@
+<!doctype html><html lang=zh-hans><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=HandheldFriendly content="True"><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="no-transform"><meta http-equiv=cache-control content="no-siteapp"><meta name=generator content="Hugo 0.84.4"><link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>"><title>Python Subprocess模块 - ⚝</title><meta name=author content="qlel"><meta name=description content="A minimal Hugo theme with nice theme color."><meta name=keywords content="python"><meta property="og:title" content="Python Subprocess模块"><meta name=twitter:title content="Python Subprocess模块"><meta property="og:type" content="article"><meta property="og:url" content="/post/python-subprocess%E6%A8%A1%E5%9D%97/"><meta property="og:description" content="subprocess 子进程管理
+生成新的进程，连接它们的输入、输出、错误管道，并且获取它们的返回码。"><meta name=twitter:description content="subprocess 子进程管理
+生成新的进程，连接它们的输入、输出、错误管道，并且获取它们的返回码。"><meta property="og:image" content="/img/og.png"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-02-09T01:09:57+08:00"><meta property="article:modified_time" content="2021-02-09T01:09:57+08:00"><style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style><link rel=stylesheet href=/assets/css/fuji.min.css></head><body data-theme=auto data-theme-auto=true><script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script><header><div class="container-lg clearfix"><div class="col-12 header"><a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span></div></div></header><main><div class="container-lg clearfix"><div class="col-12 col-md-9 float-left content"><article><h2 class="post-item post-title"><a href=/post/python-subprocess%E6%A8%A1%E5%9D%97/>Python Subprocess模块</a></h2><div class="post-item post-meta"><span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-02-09</span>
+<span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;1725 字</span>
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/python>python</a>&nbsp;</span></div><div class="post-content markdown-body"><p>subprocess 子进程管理</p><p>生成新的进程，连接它们的输入、输出、错误管道，并且获取它们的返回码。</p><h2 id=run>run()</h2><p>subprocess 模块首先推荐使用的是它的 run 方法，更高级的用法可以直接使用底层的 Popen 接口。</p><p><code>subprocess.run(args, *, stdin=None, input=None, stdout=None, stderr=None, capture_output=False, shell=False, cwd=None, timeout=None, check=False, encoding=None, errors=None, text=None, env=None, universal_newlines=None, **other_popen_kwargs)</code></p><p>运行被 args 描述的指令。等待指令完成，然后返回一个 <code>CompletedProcess</code> 实例。</p><ul><li><code>args</code>可以是一个字符串或者列表序列</li><li><code>stdin</code>,<code>stdout</code>,<code>stderr</code>: 执行程序命令的标准输入、输出和错误。
+其值可以是 <code>subprocess.PIPE</code>、<code>subprocess.DEVNULL</code>、一个已经存在的文件描述符、已经打开的文件对象或者 <code>None</code>。<code>subprocess.PIPE</code> 表示为子进程创建新的管道。<code>subprocess.DEVNULL</code> 表示使用 <code>os.devnull</code>。默认使用的是 None，表示什么都不做。另外，stderr 可以合并到 stdout 里一起输出。</li><li><code>capture_output</code>: <code>stderr</code>和<code>stdout</code>的合并, 如果设置为True, stdout 和 stderr 将会被捕获, 即:<code>stdout=subprocess.PIPE</code>,<code>stderr=subprocess.PIPE</code></li><li><code>timeout</code>: 设置命令超时时间。如果命令执行时间超时，子进程将被杀死，并弹出 TimeoutExpired 异常。</li><li><code>check</code>: 如果该参数设置为 True，并且进程退出状态码returncode不是 0，则弹 出 CalledProcessError 异常。</li><li><code>text</code>: 如果为True, 则 stdin、stdout 和 stderr 可以接收字符串数据, 否则只接收 bytes 类型的数据。</li><li><code>shell</code>: 如果该参数为 True，将通过操作系统的 shell 执行指定的命令。在win10中必须设置为True才会执行命令.
+在 Windows，使用 shell=True，环境变量 COMSPEC 指定了默认 shell。在 Windows 你唯一需要指定 shell=True 的情况是你想要执行内置在 shell 中的命令（例如 dir 或者 copy）。在运行一个批处理文件或者基于控制台的可执行文件时，不需要 shell=True。</li><li><code>cwd</code>: 在执行子进程前会将当前工作目录改为 cwd。 cwd 可以是一个字符串、字节串或 路径类对象</li><li><code>env</code>: 用于指定子进程的环境变量。如果 env = None，子进程的环境变量将从父进程中继承。字典.</li></ul><p>返回的<code>CompletedProcess</code>实例属性和方法有:</p><ul><li><code>args</code>: 运行的指令</li><li><code>returncode</code>: 子进程的退出状态码. 通常来说, 一个为 0 的退出码表示进程运行正常.
+一个负值 -N 表示子进程被信号 N 中断 (仅 POSIX).</li><li><code>stdout</code>, <code>stderr</code>: 从子进程捕获到的标准输出, 错误. 一个字节序列.
+如果 <code>run()</code> 是设置了 encoding, errors 或者 text=True 来运行的, 则可以是字符串
+如果未有捕获, 则为 None.</li><li><code>check_returncode()</code>: 为实例方法, 如果 returncode 非零, 抛出 CalledProcessError.</li></ul><p>示例:</p><pre><code class=language-py>&gt;&gt;&gt; subprocess.run(args='ls', shell=True)
+CompletedProcess(args='ls', returncode=1)
+&gt;&gt;&gt; subprocess.run(args='ls', shell=True, capture_output=True)
+CompletedProcess(args='ls', returncode=1, stdout=b'', stderr=b&quot;'ls' \xb2\xbb\xca\xc7\xc4\xda\xb2\xbf\xbb\xf2\xcd\xe2\xb2\xbf\xc3\xfc\xc1\xee\xa3\xac\xd2\xb2\xb2\xbb\xca\xc7\xbf\xc9\xd4\xcb\xd0\xd0\xb5\xc4\xb3\xcc\xd0\xf2\r\n\xbb\xf2\xc5\xfa\xb4\xa6\xc0\xed\xce\xc4\xbc\xfe\xa1\xa3\r\n&quot;)
+
+# text=True 会转化输出为字符串类型, win10中的dos没有ls命令
+&gt;&gt;&gt; subprocess.run(args='ls', shell=True, capture_output=True, text=True)
+CompletedProcess(args='ls', returncode=1, stdout='', stderr=&quot;'ls' 不是内部或外部命令，也不是可运行的程序\n或批处理文件。\n&quot;)
+
+&gt;&gt;&gt; subprocess.run(args=['echo',r'你好'], shell=True, capture_output=True, text=True)
+CompletedProcess(args=['echo', '你好'], returncode=0, stdout='你好\n', stderr='')
+</code></pre><h2 id=popen>Popen()</h2><p><code>subprocess.Popen(args, bufsize=-1, executable=None, stdin=None, stdout=None, stderr=None, preexec_fn=None, close_fds=True, shell=False, cwd=None, env=None, universal_newlines=None, startupinfo=None, creationflags=0, restore_signals=True, start_new_session=False, pass_fds=(), *, group=None, extra_groups=None, user=None, umask=-1, encoding=None, errors=None, text=None)</code></p><p>在一个新的进程中执行子程序。返回Popen实例.</p><p>在 POSIX，此类使用类似于 <code>os.execvp()</code> 的行为来执行子程序。</p><p>在 Windows，此类使用了 <code>Windows CreateProcess()</code> 函数</p><p>参数与<code>run()</code>类似. 还有些其它参数</p><ul><li><code>bufsize</code>: 缓冲区大小。当创建标准流的管道对象时使用，默认-1。
+0表示不使用缓冲区.
+1表示行缓冲，仅当universal_newlines=True时可用，也就是文本模式
+正数：表示缓冲区大小
+负数：表示使用系统默认的缓冲区大小。</li><li><code>preexec_fn</code>：只在 Unix 平台下有效，用于指定一个可执行对象（callable object），它将在子进程运行之前被调用</li></ul><p>Popen 对象支持通过 with 语句作为上下文管理器，在退出时关闭文件描述符并等待进程:</p><pre><code class=language-py>with Popen([&quot;ifconfig&quot;], stdout=PIPE) as proc:
+    log.write(proc.stdout.read())
+</code></pre><p>Popen实例对象方法:</p><ul><li><code>poll()</code>
+检查进程是否终止，如果终止返回 returncode，否则返回 None。</li><li><code>wait(timeout=None)</code>
+等待子进程被终止。</li><li><code>communicate(input=None, timeout=None)</code>
+和子进程交互，发送和读取数据。</li><li><code>send_signal(signal)</code>
+将信号 signal 发送给子进程</li><li><code>terminate()</code>
+停止子进程。 在 POSIX 操作系统上，此方法会发送 SIGTERM 给子进程。 在 Windows 上则会调用 Win32 API 函数 TerminateProcess() 来停止子进程。</li><li><code>kill()</code>
+杀死子进程。 在 POSIX 操作系统上，此函数会发送 SIGKILL 给子进程。 在 Windows 上 kill() 则是 terminate() 的别名。</li></ul><p>Popen实例对象属性:</p><ul><li><code>args</code>: 指令</li><li><code>stdin</code>, <code>stdout</code>, <code>stderr</code>:
+如果 stdin 或 stdout 或 stderr 参数为 PIPE，此属性是一个类似 open() 返回的可写的流对象。如果 encoding 或 errors 参数被指定或者 universal_newlines 参数为 True，则此流是一个文本流，否则是字节流。如果 stdin 参数非 PIPE， 此属性为 None。</li><li><code>pid</code>
+子进程的进程号。</li><li><code>returncode</code>
+子进程的退出码</li></ul></div></article></div><aside class="col-12 col-md-3 float-left sidebar"><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
+<span><a href=/tags/bash/>bash</a></span>
+<span><a href=/tags/dos/>dos</a></span>
+<span><a href=/tags/iproute2/>iproute2</a></span>
+<span><a href=/tags/js/>js</a></span>
+<span><a href=/tags/linux/>linux</a></span>
+<span><a href=/tags/mysql/>mysql</a></span>
+<span><a href=/tags/nginx/>nginx</a></span>
+<span><a href=/tags/php/>php</a></span>
+<span><a href=/tags/powershell/>powershell</a></span>
+<span><a href=/tags/python/>python</a></span>
+<span><a href=/tags/sed/>sed</a></span>
+<span><a href=/tags/sftp/>sftp</a></span>
+<span><a href=/tags/shell/>shell</a></span>
+<span><a href=/tags/ssh/>ssh</a></span>
+<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#run>run()</a></li><li><a href=#popen>Popen()</a></li></ul></li></ul></nav></div></aside></div><div class=btn><div class=btn-menu id=btn-menu><i class="iconfont icon-grid-sharp"></i></div><div class=btn-toggle-mode><i class="iconfont icon-contrast-sharp"></i></div><div class=btn-scroll-top><i class="iconfont icon-chevron-up-circle-sharp"></i></div></div><aside class=sidebar-mobile style=display:none><div class=sidebar-wrapper><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
+<span><a href=/tags/bash/>bash</a></span>
+<span><a href=/tags/dos/>dos</a></span>
+<span><a href=/tags/iproute2/>iproute2</a></span>
+<span><a href=/tags/js/>js</a></span>
+<span><a href=/tags/linux/>linux</a></span>
+<span><a href=/tags/mysql/>mysql</a></span>
+<span><a href=/tags/nginx/>nginx</a></span>
+<span><a href=/tags/php/>php</a></span>
+<span><a href=/tags/powershell/>powershell</a></span>
+<span><a href=/tags/python/>python</a></span>
+<span><a href=/tags/sed/>sed</a></span>
+<span><a href=/tags/sftp/>sftp</a></span>
+<span><a href=/tags/shell/>shell</a></span>
+<span><a href=/tags/ssh/>ssh</a></span>
+<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#run>run()</a></li><li><a href=#popen>Popen()</a></li></ul></li></ul></nav></div></div></aside></main><footer><div class="container-lg clearfix"><div class="col-12 footer"><span>&copy; 2020-2021
+<a href=/>qlel</a>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建</span></div></div></footer><script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script><script defer src=/assets/js/fuji.min.js></script></body></html>
