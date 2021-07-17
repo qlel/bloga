@@ -1,0 +1,422 @@
+<!doctype html><html lang=zh-hans><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=HandheldFriendly content="True"><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="no-transform"><meta http-equiv=cache-control content="no-siteapp"><meta name=generator content="Hugo 0.84.4"><link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>"><title>Linux挂载硬盘 - ⚝</title><meta name=author content="qlel"><meta name=description content="linux挂载硬盘和lvm相关了解。"><meta name=keywords content="linux,lvm"><meta property="og:title" content="Linux挂载硬盘"><meta name=twitter:title content="Linux挂载硬盘"><meta property="og:type" content="article"><meta property="og:url" content="/post/linux%E6%8C%82%E8%BD%BD%E7%A1%AC%E7%9B%98/"><meta property="og:description" content="linux挂载硬盘和lvm相关了解。"><meta name=twitter:description content="linux挂载硬盘和lvm相关了解。"><meta property="og:image" content="/img/og.png"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-07-17T09:47:47+08:00"><meta property="article:modified_time" content="2021-07-17T09:47:47+08:00"><style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style><link rel=stylesheet href=/assets/css/fuji.min.css></head><body data-theme=auto data-theme-auto=true><script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script><header><div class="container-lg clearfix"><div class="col-12 header"><a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span></div></div></header><main><div class="container-lg clearfix"><div class="col-12 col-md-9 float-left content"><article><h2 class="post-item post-title"><a href=/post/linux%E6%8C%82%E8%BD%BD%E7%A1%AC%E7%9B%98/>Linux挂载硬盘</a></h2><div class="post-item post-meta"><span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-07-17</span>
+<span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;5838 字</span>
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/linux>linux</a>&nbsp;<a href=/tags/lvm>lvm</a>&nbsp;</span></div><div class="post-content markdown-body"><h2 id=概述>概述</h2><p>在Linux中，所有的设备都是以文件的形式表现，硬盘也不例外，硬盘设备的文件名格式一般为 <code>/dev/xxyn</code>：</p><ul><li><code>xx</code> 标明硬盘的类型，如：<code>sd</code>:表示硬盘接口是 SCSI 或 SATA 或 USB ；<code>hd</code>:表示硬盘接口是 IDE 。</li><li><code>y</code>(范围：<code>a-z</code>)标明了硬盘是使用此类接口第几个硬盘，如：<code>/dev/hdd</code>表示这是第四个使用IDE接口的硬盘。</li><li><code>n</code>表示分区，用数字表示</li></ul><p>如：<code>/dev/hda3</code>表示在第一个IDE接口硬盘上的第三个主分区或扩展分区。</p><blockquote><p><strong>主分区</strong></p><blockquote><p>也称为主磁盘分区，是一种分区类型。主分区中不能再划分其他类型的分区，因此每个主分区都相当于一个逻辑磁盘（在这一点上主分区和逻辑分区很相似，但主分区是直接在硬盘上划分的，逻辑分区则必须建立于扩展分区中）。</p></blockquote></blockquote><blockquote><p><strong>扩展分区</strong></p><blockquote><p>是硬盘磁盘分区的一种。严格地讲它不是一个实际意义的分区，它仅仅是一个指向下一个分区的指针，这种指针结构将形成一个单向链表。这样在主引导扇区中除了主分区外，仅需要存储一个被称为扩展分区的分区数据，通过这个扩展分区的数据可以找到下一个分区。扩展分区不能直接存储数据，扩展分区的作用是保存逻辑分区。</p></blockquote></blockquote><blockquote><p><strong>逻辑分区</strong>
+是硬盘上一块连续的区域，不同之处在于，每个主分区只能分成一个驱动器，每个主分区都有各自独立的引导块，可以用<code>fdisk</code>设定为启动区。一个硬盘上最多可以有4个主分区，而扩展分区上可以划分出多个逻辑驱动器。这些逻辑驱动器没有独立的引导块，不能用<code>fdisk</code>设定为启动区。主分区和扩展分区都是dos分区。</p></blockquote><p>这些分区的区别：</p><ul><li>地位不同
+逻辑分区属于扩展分区，扩展分区属于主分区。
+给新硬盘上建立分区时都要遵循以下的顺序：
+建立主分区→建立扩展分区→建立逻辑分区→激活主分区→格式化所有分区。</li><li>位置不同
+主分区又叫做引导分区，老的MBR分区最多只能创建四个，现在基本采用的GPT分区几乎无限制。
+扩展分区是主分区之外的部分。
+逻辑分区在扩展分区之内可以创建无数个。
+<img class=img-zoomable src=/Linux%e6%8c%82%e8%bd%bd%e7%a1%ac%e7%9b%98/%e5%88%86%e5%8c%ba%e6%ad%a5%e9%aa%a4.webp alt=分区步骤.webp></li><li>作用不同
+主分区是独立的，对应磁盘上的第一个分区，“一般”就是C盘。
+扩展分区是一个概念，实际上是看不到的。
+逻辑分区相当于一块存储介质，和操作系统还有别的逻辑分区、主分区没有什么关系，是“独立的”。</li><li>格式化情况不同
+格式化是针对主分区和逻辑分区的。要格式化是因为这和操作系统管理文件系统有关系。没有格式化的分区就像一张白纸，要写入数据，必须对白纸打上“格子”，每个格子里面写一块。而操作系统只认这些格子。</li><li>大小不同
+我们假定扩展分区为字母<code>X</code>，用一个公式来总结它们之间的关系：
+硬盘的容量＝主分区的容量＋扩展分区的容量（硬盘=C盘+<code>X</code>）
+扩展分区的容量＝各个逻辑分区的容量之和（<code>X</code>=D盘+E盘+F盘）</li></ul><h2 id=查看硬盘信息>查看硬盘信息</h2><ul><li><code>fdisk -l</code>
+可查看详细信息，DiskLabel type是<code>dos</code>，表示是MBR类型分区；如果是<code>gpt</code>，就是GPT类型分区。</li></ul><p><img class=img-zoomable src=/Linux%e6%8c%82%e8%bd%bd%e7%a1%ac%e7%9b%98/fdisk_l.png alt=fdisk_l.png></p><ul><li><code>lsblk</code>或者<code>lsblk -f</code>
+列出块设备信息</li></ul><p><img class=img-zoomable src=/Linux%e6%8c%82%e8%bd%bd%e7%a1%ac%e7%9b%98/lsblk.png alt=lsblk.png></p><h2 id=硬盘分区>硬盘分区</h2><p>使用<code>fdisk</code>命令进行分区，相关菜单选项：</p><ul><li><code>m</code> ：显示菜单和帮助信息</li><li><code>a</code> ：活动分区标记/引导分区</li><li><code>d</code> ：删除分区</li><li><code>l</code> ：显示分区类型</li><li><code>n</code> ：新建分区</li><li><code>p</code> ：显示分区信息</li><li><code>q</code> ：退出不保存</li><li><code>t</code> ：指定分区号进行设置</li><li><code>v</code> ：进行分区检查</li><li><code>w</code> ：保存修改</li><li><code>x</code> ：扩展应用，高级功能</li></ul><p>如:对<code>/dev/sdb</code>进行分区，分区后重启可看到分区：</p><pre><code class=language-bash>[root@localhost /]# fdisk /dev/sdb              
+Welcome to fdisk (util-linux 2.23.2).
+
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Device does not contain a recognized partition table
+Building a new DOS disklabel with disk identifier 0x6511fa23.
+
+Command (m for help): p                   \\查看已有分区
+
+Disk /dev/sdb: 240.1 GB, 240057409536 bytes, 468862128 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk label type: dos
+Disk identifier: 0x6511fa23
+
+   Device Boot      Start         End      Blocks   Id  System
+
+Command (m for help): n                    \\创建分区
+Partition type:
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended
+Select (default p): p                   \\p表示主分区，e表示扩展分区
+Partition number (1-4, default 1):  \\ 分区号
+First sector (2048-468862127, default 2048): \\这里输入分区大小
+Using default value 2048
+Last sector, +sectors or +size{K,M,G} (2048-468862127, default 468862127): 
+Using default value 468862127
+Partition 1 of type Linux and of size 223.6 GiB is set
+
+Command (m for help): p                     \\查看确认分区
+ 
+Disk /dev/sdb: 240.1 GB, 240057409536 bytes, 468862128 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk label type: dos
+Disk identifier: 0x6511fa23
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048   468862127   234430040   83  Linux
+
+Command (m for help): w                    \\保存分区
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+Syncing disks.
+</code></pre><h2 id=分区格式化>分区格式化</h2><ul><li><code>mkfs</code>
+一般用于格式化分区<ul><li><code>-t</code>：指定文件类型，如ext2, ext4等</li></ul></li><li><code>mkswap</code>
+设置交换分区</li></ul><pre><code class=language-bash>$ mkfs -t ext4 /dev/sda6 # 将该分区格式化成ext4文件系统
+$ mkswap /dev/sda7 # 设置交换区
+</code></pre><h2 id=挂载和卸载分区>挂载和卸载分区</h2><p>Linux的文件系统都是树形结构，所有的文件系统结合起来就形成了一个大的目录树，这个目录树的根就是根目录<code>/</code>，根分区在开机时就自动挂载到根目录上了，划分好并格式化的分区也要挂载到这个目录树的某个目录上，才能被我们使用，否则这个分区就没有访问的入口，而这个目录就被称为该分区的挂载点。</p><ul><li>挂载分区<ul><li><code>mount 分区名 挂载点</code><ul><li><code>-t</code> # 分区文件系统类型</li><li><code>-l</code> # 列出所挂载的系统</li><li><code>-o</code> # 指定挂载后的行为</li></ul></li></ul></li><li>卸载分区<ul><li><code>umount 分区名|挂载点</code></li></ul></li></ul><pre><code class=language-bash>mount -t ext4 /dev/sdb1 /project/music
+</code></pre><h2 id=开机自动挂载分区>开机自动挂载分区</h2><p>为了保持挂载的持久性，需要修改配置启动文件<code>/etc/fstab</code>。</p><p><code>/etc/fstab</code>文件中有有3种格式可用于挂载：</p><pre><code class=language-bash># &lt;file system&gt;       &lt;mount point&gt;  &lt;type&gt;  &lt;options&gt;  &lt;dump&gt;  &lt;pass&gt;
+/dev/sdb1       /project/music        ext4   defaults     0       0 # 第一种方式
+---------------------
+e2label /dev/sda5 lvaa # 为硬盘设备加标签为lvaa
+LABEL=lvaa      /project/vedio        ext4   defaults     0       0 # 第二种方式
+-----------------------------------------
+blkid # 查看硬盘设备UUID
+UUID=设备UUID    /project/share       ext4   defaults      0       0 # 第三种方式 推荐
+</code></pre><p><img class=img-zoomable src=/Linux%e6%8c%82%e8%bd%bd%e7%a1%ac%e7%9b%98/fstab.png alt=fstab.png></p><ul><li><code>e2label</code> 设置分区标签名<ul><li><code>e2label 分区设备名 标签名</code></li></ul></li><li><code>blkid</code> 查看块设备的文件系统类型、LABEL、UUID、挂载目录等信息。</li><li><code>&lt;file system></code>
+指定了要挂载的设备；有三种方式指定：<ol><li>/dev/sda6</li><li>LABEL=某个设备标签</li><li>UUID=某个设备的UUID(推荐)</li></ol></li><li><code>&lt;mount point></code>
+挂载点</li><li><code>&lt;type></code>
+挂载分区文件系统类型</li><li><code>&lt;options></code>
+挂载参数，指定文件系统挂载后的一下行为属性</li><li><code>&lt;dump></code>
+该选项被<code>dump</code>命令使用来检查一个文件系统是否应该进行<code>dump</code>备份<ul><li>若不需要则设置为<code>0</code></li><li>每天备份设置为<code>1</code></li><li>不定期备份设置为<code>2</code></li></ul></li><li><code>&lt;pass></code>
+开机检查分区的次序，该选项被命令<code>fstab</code>用来确定系统开机进行文件系统检查时的顺序，<code>1</code>为优先，<code>2</code>为次优先，如果为<code>0</code>或者没有设置，开机将跳过检查。</li></ul><h2 id=什么是lvm>什么是LVM</h2><p>LVM是逻辑盘卷管理（Logical Volume Manager）的简称，它是Linux环境下对磁盘分区进行管理的一种机制，LVM是建立在硬盘和分区之上的一个逻辑层，来提高磁盘分区管理的灵活性。</p><p>在LVM中，有几个概念需要了解熟悉：</p><ul><li><code>PV</code> (Physical Volume)
+<strong>物理卷</strong>就是实际对应的物理存储设备。传统的存储管理方式是将物理设备格式化后，就直接挂载到一个目录上。在LVM中，<code>PV</code>是一个基础物理单位，也是存储池的基本组成部分。存储分区要成为<code>PV</code>，需要调用LVM命令方法，在分区中记录相应的元数据信息。</li><li><code>VG</code> (Volume Group)
+<strong>卷组</strong>类似于非LVM系统中的物理硬盘，其由物理卷组成。可以在卷组上创建一个或多个“LVM分区”（逻辑卷），LVM卷组由一个或多个物理卷组成。</li><li><code>LV</code> (Logical Volume)
+<strong>逻辑卷</strong>建立在卷组基础上，卷组中未分配空间可用于建立新的逻辑卷，逻辑卷建立后可以动态扩展和缩小空间。</li><li><code>PE</code> (Physical Extent)
+<strong>物理块</strong>是物理卷中可用于分配的最小存储单元，物理块大小在建立卷组时指定，一旦确定不能更改，同一卷组所有物理卷的物理块大小需一致，新的pv加入到vg后，pe的大小自动更改为vg中定义的pe大小。</li><li><code>LE</code> (Logical Extent)
+<strong>逻辑块</strong>是逻辑卷中可用于分配的最小存储单元，逻辑块的大小取决于逻辑卷所在卷组中的物理区域的大小。由于受内核限制的原因，一个逻辑卷（Logic Volume）最多只能包含65536个PE（Physical Extent），所以一个PE的大小就决定了逻辑卷的最大容量，4 MB(默认) 的PE决定了单个逻辑卷最大容量为 256 GB，若希望使用大于256G的逻辑卷，则创建卷组时需要指定更大的PE。在Red Hat Enterprise Linux AS 4中PE大小范围为8 KB 到 16GB，并且必须总是 2 的倍数。</li></ul><p><img class=img-zoomable src=/Linux%e6%8c%82%e8%bd%bd%e7%a1%ac%e7%9b%98/lvm%e7%bb%93%e6%9e%84.jpg alt=lvm结构.jpg></p><h2 id=查看pvvglv信息>查看PV/VG/LV信息</h2><ul><li><code>pvs</code> 查看物理卷的信息</li><li><code>pvdisplay</code> 查看物理卷的详细信息</li><li><code>vgs</code> 查看卷组的信息</li><li><code>vgdisplay</code> 查看卷组的详细信息</li><li><code>lvs</code> 查看逻辑卷的信息</li><li><code>lvdisplay</code> 查看逻辑卷的详细信息</li></ul><p>查看基本信息：</p><pre><code class=language-bash>root@debianqlel:~# pvs
+  PV         VG            Fmt  Attr PSize  PFree
+  /dev/sda5  debianqlel-vg lvm2 a--  &lt;7.52g    0
+root@debianqlel:~# vgs
+  VG            #PV #LV #SN Attr   VSize  VFree
+  debianqlel-vg   1   2   0 wz--n- &lt;7.52g    0
+root@debianqlel:~# lvs
+  LV     VG            Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  root   debianqlel-vg -wi-ao----   6.56g
+  swap_1 debianqlel-vg -wi-ao---- 980.00m
+</code></pre><p>查看详细信息：</p><pre><code class=language-bash>root@debianqlel:~# pvdisplay
+  --- Physical volume ---
+  PV Name               /dev/sda5
+  VG Name               debianqlel-vg
+  PV Size               7.52 GiB / not usable 2.00 MiB
+  Allocatable           yes (but full)
+  PE Size               4.00 MiB
+  Total PE              1925
+  Free PE               0
+  Allocated PE          1925
+  PV UUID               6jP54b-JyR4-0Lqb-pzcN-WxSC-ijkU-3hKTQM
+
+root@debianqlel:~# vgdisplay
+  --- Volume group ---
+  VG Name               debianqlel-vg
+  System ID
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  3
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                2
+  Open LV               2
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               &lt;7.52 GiB
+  PE Size               4.00 MiB
+  Total PE              1925
+  Alloc PE / Size       1925 / &lt;7.52 GiB
+  Free  PE / Size       0 / 0
+  VG UUID               fHeCqb-8A2x-Ec3E-JYGS-tAxY-M9Eg-f6JmF3
+
+root@debianqlel:~# lvdisplay
+  --- Logical volume ---
+  LV Path                /dev/debianqlel-vg/root
+  LV Name                root
+  VG Name                debianqlel-vg
+  LV UUID                buL332-eNms-0ZeH-QYsO-7Qe2-iBIn-WPRVro
+  LV Write Access        read/write
+  LV Creation host, time debianqlel, 2021-03-03 20:41:23 +0800
+  LV Status              available
+  # open                 1
+  LV Size                6.56 GiB
+  Current LE             1680
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     256
+  Block device           254:0
+
+  --- Logical volume ---
+  LV Path                /dev/debianqlel-vg/swap_1
+  LV Name                swap_1
+  VG Name                debianqlel-vg
+  LV UUID                fy0aqG-tmRI-rsOQ-2Hd0-KWJ6-J2lr-wfH50E
+  LV Write Access        read/write
+  LV Creation host, time debianqlel, 2021-03-03 20:41:23 +0800
+  LV Status              available
+  # open                 2
+  LV Size                980.00 MiB
+  Current LE             245
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     256
+  Block device           254:1
+</code></pre><h2 id=将各物理磁盘或分区的系统类型设为linux-lvm>将各物理磁盘或分区的系统类型设为Linux LVM</h2><p>Linux LVM的system ID为<code>8e</code>，通过<code>fdisk</code>命令中的<code>t</code>选项设置。</p><pre><code class=language-bash>[root@localhost ~]# fdisk /dev/sdb 
+...
+Command (m for help): n
+Partition type:
+   p   primary (1 primary, 0 extended, 3 free)
+   e   extended
+Select (default p): p
+Partition number (2-4, default 2): 2
+First sector (20973568-62914559, default 20973568): 
+Using default value 20973568
+Last sector, +sectors or +size{K,M,G} (20973568-62914559, default 62914559): +5G
+...
+Command (m for help): t
+Partition number (1,2, default 2): 2
+Hex code (type L to list all codes): 8e  # 指定system id为8e
+Changed type of partition 'Linux' to 'Linux LVM'
+...
+Command (m for help): p
+...
+/dev/sdb1            2048    20973567    10485760   8e  Linux LVM
+/dev/sdb2        20973568    31459327     5242880   8e  Linux LVM
+Command (m for help): w
+...
+</code></pre><h2 id=将各物理磁盘或分区初始化为pv>将各物理磁盘或分区初始化为PV</h2><p>这一阶段可使用的命令有：</p><ul><li><code>pvcreate</code> 创建物理卷</li><li><code>pvremove</code> 将物理卷信息删除，使其不再被视为一个物理卷</li><li><code>pvscan</code> 扫描当前系统上的所有物理卷</li><li><code>pvs</code> 查看物理卷的信息</li><li><code>pvdisplay</code> 查看物理卷的详细信息</li></ul><h3 id=pvcreate>pvcreate</h3><p>创建物理卷。</p><pre><code class=language-bash>用法：pvcreate [option] DEVICE
+
+选项：
+
+    -f：强制创建逻辑卷，不需用户确认
+
+    -u：指定设备的UUID
+
+    -y：所有问题都回答yes
+
+例 pvcreate /dev/sdb1 /dev/sdb2
+</code></pre><h3 id=pvscan>pvscan</h3><p>扫描当前系统上的所有物理卷</p><pre><code class=language-bash>用法：pvscan [option]
+
+  选项：
+
+      -e：仅显示属于输出卷组的物理卷
+
+      -n：仅显示不属于任何卷组的物理卷
+
+      -u：显示UUID
+</code></pre><h3 id=pvremove>pvremove</h3><p>将物理卷信息删除，使其不再被视为一个物理卷</p><pre><code class=language-bash>用法：pvremove [option] PV_DEVICE
+
+选项：
+
+    -f：强制删除
+
+    -y：所有问题都回答yes
+
+例 pvremove /dev/sdb1
+</code></pre><h3 id=示例>示例</h3><pre><code class=language-bash>[root@localhost ~]# pvcreate /dev/sdb{1,2}  # 将两个分区初始化为物理卷
+  Physical volume &quot;/dev/sdb1&quot; successfully created.
+  Physical volume &quot;/dev/sdb2&quot; successfully created.
+[root@localhost ~]# pvscan 
+  PV /dev/sdb2                      lvm2 [5.00 GiB]
+  PV /dev/sdb1                      lvm2 [10.00 GiB]
+  Total: 2 [15.00 GiB] / in use: 0 [0   ] / in no VG: 2 [15.00 GiB]
+[root@localhost ~]# pvdisplay /dev/sdb1   # 显示物理卷sdb1的详细信息
+  &quot;/dev/sdb1&quot; is a new physical volume of &quot;10.00 GiB&quot;
+  --- NEW Physical volume ---
+  PV Name               /dev/sdb1
+  VG Name               
+  PV Size               10.00 GiB
+  Allocatable           NO
+  PE Size               0   # 由于PE是在VG阶段才划分的，所以此处看到的都是0
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               GrP9Gi-ubau-UAcb-za3B-vSc3-er2Q-MVt9OO
+   
+[root@localhost ~]# pvremove /dev/sdb2   # 删除sdb2的物理卷信息
+  Labels on physical volume &quot;/dev/sdb2&quot; successfully wiped.
+[root@localhost ~]# pvscan     # 可以看到PV列表中已无sdb2
+  PV /dev/sdb1                      lvm2 [10.00 GiB]
+  Total: 1 [10.00 GiB] / in use: 0 [0   ] / in no VG: 1 [10.00 GiB]
+[root@localhost ~]# pvcreate /dev/sdb2 
+  Physical volume &quot;/dev/sdb2&quot; successfully created.
+</code></pre><h2 id=创建卷组vg>创建卷组VG</h2><p><code>VG</code>（volume group，卷组）。卷组将多个物理卷整合起来（屏蔽了底层细节），并划分<code>PE</code>（physical extend）。</p><p><code>PE</code>是物理卷中的最小存储单元，有点类似于文件系统中的block，<code>PE</code>大小可指定，默认为<code>4M</code>。</p><p>这一阶段用到的命令有:</p><ul><li><code>vgcreate</code> 创建卷组</li><li><code>vgscan</code> 查找系统中存在的LVM卷组，并显示找到的卷组列表</li><li><code>vgextend</code> 动态扩展LVM卷组，通过向卷组中添加物理卷来增加卷组的容量</li><li><code>vgreduce</code> 通过删除LVM卷组中的物理卷来减少卷组容量，不能删除LVM卷组中剩余的最后一个物理卷</li><li><code>vgremove</code> 删除卷组，其上的逻辑卷必须处于离线状态</li><li><code>vgchange</code> 改变卷组属性。常用来设置卷组的活动状态</li><li><code>vgs</code> 查看卷组的信息</li><li><code>vgdisplay</code> 查看卷组的详细信息</li></ul><h3 id=vgcreate>vgcreate</h3><p>创建卷组</p><pre><code class=language-bash>用法：vgcreate [option] VG_NAME PV_DEVICE ...
+
+选项：
+
+    -s：卷组中的物理卷的PE大小，默认为4M
+
+    -l：卷组上允许创建的最大逻辑卷数
+
+    -p：卷级中允许添加的最大物理卷数
+
+例 vgcreate -s 8M myvg /dev/sdb1 /dev/sdb2
+</code></pre><h3 id=vgdisplay>vgdisplay</h3><p>显示卷组详细信息属性</p><pre><code class=language-bash>用法：vgdisplay [option] [VG_NAME]
+
+选项：
+
+    -A：仅显示活动卷组的信息
+
+    -s：使用短格式输出信息
+</code></pre><h3 id=vgextend>vgextend</h3><p>动态扩展LVM卷组，它通过向卷组中添加物理卷来增加卷组的容量</p><pre><code class=language-bash>用法：vgextend VG_NAME PV_DEVICE ...
+
+例 vgextend myvg /dev/sdb3
+</code></pre><h3 id=vgreduce>vgreduce</h3><p>通过删除LVM卷组中的物理卷来减少卷组容量，不能删除LVM卷组中剩余的最后一个物理卷</p><pre><code class=language-bash>用法：
+vgreduce VG PV ...
+
+从VG中删除所有未使用的PV:
+vgreduce -a|--all VG_NAME 
+
+从VG中删除所有丢失的PV:
+vgreduce --removemissing VG_NAME 
+</code></pre><h3 id=vgremove>vgremove</h3><p>删除卷组，其上的逻辑卷必须处于离线状态</p><pre><code class=language-bash>用法：vgremove [-f] VG_NAME
+
+-f：强制删除
+</code></pre><h3 id=vgchange>vgchange</h3><p>改变卷组属性。常用来设置卷组的活动状态。</p><pre><code class=language-bash>用法：vgchange -a n/y VG_NAME
+
+-a n为休眠状态，休眠之前要先确保其上的逻辑卷都离线；
+
+-a y为活动状态
+</code></pre><h3 id=示例-1>示例</h3><pre><code class=language-bash># 创建一个卷组myvg
+[root@localhost ~]# vgcreate -s 8M myvg /dev/sdb{1,2}
+  Volume group &quot;myvg&quot; successfully created
+[root@localhost ~]# vgscan
+  Reading volume groups from cache.
+  Found volume group &quot;myvg&quot; using metadata type lvm2
+[root@localhost ~]# vgdisplay
+  --- Volume group ---
+  VG Name               myvg
+  System ID             
+  Format                lvm2
+  Metadata Areas        2
+  Metadata Sequence No  1
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                0
+  Open LV               0
+  Max PV                0
+  Cur PV                2
+  Act PV                2
+  VG Size               14.98 GiB
+  PE Size               8.00 MiB
+  Total PE              1918
+  Alloc PE / Size       0 / 0   
+  Free  PE / Size       1918 / 14.98 GiB
+  VG UUID               aM3RND-aUbQ-7RjC-dCci-JiS4-Oj2Z-wv9poA
+</code></pre><h2 id=在卷组上创建lv>在卷组上创建LV</h2><p>为了便于管理，逻辑卷对应的设备文件保存在卷组目录下，为<code>/dev/VG_NAME/LV_NAME</code>。LV中可以分配的最小存储单元称为<code>LE</code>（logical extend），在同一个卷组中，<code>LE</code>的大小和<code>PE</code>是一样的，且一一对应。</p><p>这一阶段用到的命令有：</p><ul><li><code>lvcreate</code> 创建逻辑卷或快照</li><li><code>lvscan</code> 扫描当前系统中的所有逻辑卷，及其对应的设备文件</li><li><code>lvextend</code> 在线扩展逻辑卷空间</li><li><code>lvreduce</code> 缩减逻辑卷空间，一般离线使用</li><li><code>lvresize</code> 调整逻辑卷的大小</li><li><code>lvremove</code> 删除逻辑卷，需要处于离线（卸载）状态</li><li><code>lvs</code> 查看逻辑卷的信息</li><li><code>lvdisplay</code> 查看逻辑卷的详细信息</li></ul><h3 id=lvcreate>lvcreate</h3><p>创建逻辑卷或快照。</p><p>使用该命令创建逻辑卷时当然必须指明卷组，创建快照时必须指明针对哪个逻辑卷。</p><p>选项：</p><ul><li><code>-L</code> 指定大小</li><li><code>-l</code> 指定大小(LE数量)，可用百分比</li><li><code>-n</code> 指定名称</li><li><code>-s</code> 创建快照</li><li><code>-p r</code> 设置为只读（该选项一般用于创建快照中）</li></ul><pre><code class=language-bash># 在名为vg_newlvm的卷组中创建15G大小的逻辑卷
+$ lvcreate -L 15G vg_newlvm
+
+# 在名为vgnewlvm的卷组中创建大小为2500MB的逻辑卷，并命名为centos7newvol
+# 这样就创建了块设备/dev/vgnewlvm/centos7newvol
+$ lvcreate -L 2500 -n centos7_newvol vg_newlvm
+
+# 使用 -l 参数时可以使用百分比
+$ lvcreate -l 50%VG -n centos7_newvol vg_newlvm
+
+# 使用卷组剩下的所有空间创建逻辑卷
+$ lvcreate --name centos7newvol -l 100%FREE vgnewlvm
+</code></pre><h3 id=lvdisplay>lvdisplay</h3><p>显示逻辑卷属性</p><p>用法：<code>lvdisplay [/dev/VG_NAME/LV_NAME]</code></p><h3 id=lvextend>lvextend</h3><p>在线扩展逻辑卷空间。</p><pre><code class=language-bash>用法：lvextend -L|-l 扩展的大小 /dev/VG_NAME/LV_NAME  
+
+选项：
+
+    -L：指定扩展（后）的大小。例如，-L +800M表示扩大800M，而-L 800M表示扩大至800M
+
+    -l：指定扩展（后）的大小（LE数）
+
+例 lvextend -L 200M /dev/myvg/mylv
+</code></pre><h3 id=lvreduce>lvreduce</h3><p>缩减逻辑卷空间，一般离线使用。</p><pre><code class=language-bash>用法：lvexreduce -L/-l 缩减的大小 /dev/VG_NAME/LV_NAME  
+
+选项：
+
+    -L：指定缩减（后）的大小。例如，-L -800M表示缩减800M，而-L 800M表示缩减至800M
+
+    -l：指定缩减（后）的大小（LE数）
+
+例 lvreduce -L 200M /dev/myvg/mylv
+</code></pre><h3 id=lvremove>lvremove</h3><p>删除逻辑卷，需要处于离线（卸载）状态。</p><pre><code class=language-bash>用法：lvremove [-f] /dev/VG_NAME/LV_NAME
+
+-f：强制删除
+</code></pre><h3 id=示例-2>示例</h3><pre><code class=language-bash>[root@localhost ~]# lvcreate -L 2G -n mylv myvg  
+  Logical volume &quot;mylv&quot; created.
+[root@localhost ~]# lvscan 
+  ACTIVE            '/dev/myvg/mylv' [2.00 GiB] inherit
+[root@localhost ~]# lvdisplay 
+  --- Logical volume ---
+  LV Path                /dev/myvg/mylv
+  LV Name                mylv
+  VG Name                myvg
+  LV UUID                2lfCLR-UEhm-HMiT-ZJil-3EJm-n2H3-ONLaz1
+  LV Write Access        read/write
+  LV Creation host, time localhost.localdomain, 2019-07-05 13:42:44 +0800
+  LV Status              available
+  # open                 0
+  LV Size                2.00 GiB
+  Current LE             256
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     256
+  Block device           253:0
+</code></pre><h2 id=格式化逻辑卷并挂载>格式化逻辑卷并挂载</h2><p>和以上格式化和挂载分区一致。</p><h2 id=lv逻辑卷扩容后必须对挂载目录在线扩容>LV逻辑卷扩容后，必须对挂载目录在线扩容</h2><ul><li><code>resize2fs</code> 针对文件系统ext2 ext3 ext4</li><li><code>xfs_growfs</code> 针对文件系统 xfs</li></ul><p>示例：</p><pre><code class=language-bash># xfs在线扩容
+$ xfs_growfs /dev/mapper/vg--BHG-lv01
+meta-data=/dev/mapper/vg--BHG-lv01 isize=512    agcount=4, agsize=32000 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=0 spinodes=0
+data     =                       bsize=4096   blocks=128000, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0 ftype=1
+log      =internal               bsize=4096   blocks=855, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+data blocks changed from 128000 to 256000
+
+# ext4在线扩容
+$ resize2fs /dev/mapper/vg--BHG-lv02
+resize2fs 1.42.9 (28-Dec-2013)
+Filesystem at /dev/mapper/vg--BHG-lv02 is mounted on /BHGPOS-data; on-line resizing required
+old_desc_blocks = 2, new_desc_blocks = 3
+The filesystem on /dev/mapper/vg--BHG-lv02 is now 5242880 blocks long.
+</code></pre></div></article></div><aside class="col-12 col-md-3 float-left sidebar"><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
+<span><a href=/tags/bash/>bash</a></span>
+<span><a href=/tags/dos/>dos</a></span>
+<span><a href=/tags/iproute2/>iproute2</a></span>
+<span><a href=/tags/js/>js</a></span>
+<span><a href=/tags/linux/>linux</a></span>
+<span><a href=/tags/lvm/>lvm</a></span>
+<span><a href=/tags/mysql/>mysql</a></span>
+<span><a href=/tags/nginx/>nginx</a></span>
+<span><a href=/tags/php/>php</a></span>
+<span><a href=/tags/powershell/>powershell</a></span>
+<span><a href=/tags/python/>python</a></span>
+<span><a href=/tags/sed/>sed</a></span>
+<span><a href=/tags/sftp/>sftp</a></span>
+<span><a href=/tags/shell/>shell</a></span>
+<span><a href=/tags/ssh/>ssh</a></span>
+<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#概述>概述</a></li><li><a href=#查看硬盘信息>查看硬盘信息</a></li><li><a href=#硬盘分区>硬盘分区</a></li><li><a href=#分区格式化>分区格式化</a></li><li><a href=#挂载和卸载分区>挂载和卸载分区</a></li><li><a href=#开机自动挂载分区>开机自动挂载分区</a></li><li><a href=#什么是lvm>什么是LVM</a></li><li><a href=#查看pvvglv信息>查看PV/VG/LV信息</a></li><li><a href=#将各物理磁盘或分区的系统类型设为linux-lvm>将各物理磁盘或分区的系统类型设为Linux LVM</a></li><li><a href=#将各物理磁盘或分区初始化为pv>将各物理磁盘或分区初始化为PV</a><ul><li><a href=#pvcreate>pvcreate</a></li><li><a href=#pvscan>pvscan</a></li><li><a href=#pvremove>pvremove</a></li><li><a href=#示例>示例</a></li></ul></li><li><a href=#创建卷组vg>创建卷组VG</a><ul><li><a href=#vgcreate>vgcreate</a></li><li><a href=#vgdisplay>vgdisplay</a></li><li><a href=#vgextend>vgextend</a></li><li><a href=#vgreduce>vgreduce</a></li><li><a href=#vgremove>vgremove</a></li><li><a href=#vgchange>vgchange</a></li><li><a href=#示例-1>示例</a></li></ul></li><li><a href=#在卷组上创建lv>在卷组上创建LV</a><ul><li><a href=#lvcreate>lvcreate</a></li><li><a href=#lvdisplay>lvdisplay</a></li><li><a href=#lvextend>lvextend</a></li><li><a href=#lvreduce>lvreduce</a></li><li><a href=#lvremove>lvremove</a></li><li><a href=#示例-2>示例</a></li></ul></li><li><a href=#格式化逻辑卷并挂载>格式化逻辑卷并挂载</a></li><li><a href=#lv逻辑卷扩容后必须对挂载目录在线扩容>LV逻辑卷扩容后，必须对挂载目录在线扩容</a></li></ul></li></ul></nav></div></aside></div><div class=btn><div class=btn-menu id=btn-menu><i class="iconfont icon-grid-sharp"></i></div><div class=btn-toggle-mode><i class="iconfont icon-contrast-sharp"></i></div><div class=btn-scroll-top><i class="iconfont icon-chevron-up-circle-sharp"></i></div></div><aside class=sidebar-mobile style=display:none><div class=sidebar-wrapper><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
+<span><a href=/tags/bash/>bash</a></span>
+<span><a href=/tags/dos/>dos</a></span>
+<span><a href=/tags/iproute2/>iproute2</a></span>
+<span><a href=/tags/js/>js</a></span>
+<span><a href=/tags/linux/>linux</a></span>
+<span><a href=/tags/lvm/>lvm</a></span>
+<span><a href=/tags/mysql/>mysql</a></span>
+<span><a href=/tags/nginx/>nginx</a></span>
+<span><a href=/tags/php/>php</a></span>
+<span><a href=/tags/powershell/>powershell</a></span>
+<span><a href=/tags/python/>python</a></span>
+<span><a href=/tags/sed/>sed</a></span>
+<span><a href=/tags/sftp/>sftp</a></span>
+<span><a href=/tags/shell/>shell</a></span>
+<span><a href=/tags/ssh/>ssh</a></span>
+<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#概述>概述</a></li><li><a href=#查看硬盘信息>查看硬盘信息</a></li><li><a href=#硬盘分区>硬盘分区</a></li><li><a href=#分区格式化>分区格式化</a></li><li><a href=#挂载和卸载分区>挂载和卸载分区</a></li><li><a href=#开机自动挂载分区>开机自动挂载分区</a></li><li><a href=#什么是lvm>什么是LVM</a></li><li><a href=#查看pvvglv信息>查看PV/VG/LV信息</a></li><li><a href=#将各物理磁盘或分区的系统类型设为linux-lvm>将各物理磁盘或分区的系统类型设为Linux LVM</a></li><li><a href=#将各物理磁盘或分区初始化为pv>将各物理磁盘或分区初始化为PV</a><ul><li><a href=#pvcreate>pvcreate</a></li><li><a href=#pvscan>pvscan</a></li><li><a href=#pvremove>pvremove</a></li><li><a href=#示例>示例</a></li></ul></li><li><a href=#创建卷组vg>创建卷组VG</a><ul><li><a href=#vgcreate>vgcreate</a></li><li><a href=#vgdisplay>vgdisplay</a></li><li><a href=#vgextend>vgextend</a></li><li><a href=#vgreduce>vgreduce</a></li><li><a href=#vgremove>vgremove</a></li><li><a href=#vgchange>vgchange</a></li><li><a href=#示例-1>示例</a></li></ul></li><li><a href=#在卷组上创建lv>在卷组上创建LV</a><ul><li><a href=#lvcreate>lvcreate</a></li><li><a href=#lvdisplay>lvdisplay</a></li><li><a href=#lvextend>lvextend</a></li><li><a href=#lvreduce>lvreduce</a></li><li><a href=#lvremove>lvremove</a></li><li><a href=#示例-2>示例</a></li></ul></li><li><a href=#格式化逻辑卷并挂载>格式化逻辑卷并挂载</a></li><li><a href=#lv逻辑卷扩容后必须对挂载目录在线扩容>LV逻辑卷扩容后，必须对挂载目录在线扩容</a></li></ul></li></ul></nav></div></div></aside></main><footer><div class="container-lg clearfix"><div class="col-12 footer"><span>&copy; 2020-2021
+<a href=/>qlel</a>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建</span></div></div></footer><script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script><script defer src=/assets/js/fuji.min.js></script></body></html>
