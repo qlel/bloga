@@ -8,7 +8,8 @@ showToc = true
 math = false
 showLicense = false
 +++
-
+linux挂载硬盘和lvm相关了解。
+<!--more-->
 ## 概述
 在Linux中，所有的设备都是以文件的形式表现，硬盘也不例外，硬盘设备的文件名格式一般为 `/dev/xxyn`： 
 - `xx` 标明硬盘的类型，如：`sd`:表示硬盘接口是 SCSI 或 SATA 或 USB ；`hd`:表示硬盘接口是 IDE 。

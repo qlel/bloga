@@ -6,15 +6,34 @@ date =  "2021-04-11T16:49:23+08:00"
 lastmod = "2021-04-11T16:49:23+08:00"
 +++
 
-sftp采用的是ssh加密隧道，安装性方面较ftp强，而且依赖的是系统自带的ssh服务，不像ftp还需要额外的进行安装
+sftp采用的是ssh加密隧道，安装性方面较ftp强，而且依赖的是系统自带的ssh服务，不像ftp还需要额外的进行安装。
 <!--more-->
 
-切换到root用户执行：
+## 默认sshd配置的sftp
+Linux安装ssh并启动后，`/etc/ssh/sshd_config`默认配置中就已经开启了sftp：
+```bash
+Subsystem      sftp    /usr/libexec/openssh/sftp-server
+```
+**此时Linux任何用户都可以使用相应的用户名和密码登陆sftp。**
+
+以上配置使用的是openssh的`sftp-server`服务，也可以配置性能较好的`internal-sftp`：
+```bash
+Subsystem       sftp    internal-sftp
+```
+配置改变后，记得重启sshd服务。Linux任何用户也都可以使用相应的用户名和密码登陆sftp。
+
+使用`internal-sftp`带来两个好处：
+- 性能更好，在连接sftp的时候，系统不会fork出一个新的sftp进程；
+- 可以在ssh的配置文件`/etc/ssh/sshd_config`中，使用ChrootDirectory，Match，ForceCommand等指令来限制登录sftp用户的行为。(以下内容)
+
+
+## 创建禁止登陆ssh终端但可以登陆sftp的用户
+切换到root用户操作：
 ```bash
 $ su - root
 ```
 
-## 1 给 sftp 创建一个组
+### 1 给 sftp 创建一个组
 ```bash
 $ groupadd mysftp
 
@@ -22,30 +41,35 @@ $ tail -1 /etc/group
 mysftp:x:1001:
 ```
 
-## 2 创建一个新用户加入到此组中
-也可以指定现有用户到此组中。
+### 2 创建一个新用户
+创建一个新用户，加入到mysftp组中；指定家目录，用于登陆时的家目录，也是之后`ChrootDirectory`指定的目录，会被视为根目录`/`，因为没有`/bin/bash`之类的命令，所以也不能登陆shell。
 ```bash
 # 创建一个不能登陆的用户asftp
-$ useradd -g mysftp -s /bin/false asftp
+# -d 指定家目录
+# -m 自动创建家目录
+# -g 指定新用户所属组
+# -s 指定新用户的登陆终端，这里/bin/false表示不能登陆
+$ useradd -d /home/asftp -m -g mysftp -s /bin/false asftp
 $ passwd asftp
-# 密码设置为了：asftp_2021
+# 密码设置为了：sftp_2021a
 ```
-## 3 指定新用户的home目录和设置权限
-感觉此步骤可有可无。
+### 3 设置家目录所属者和权限
 ```bash
-$ mkdir -p /home/asftp
-$ usermod -d /home/asftp asftp
+# 注意此目录如果用于后续的 ChrootDirectory 的活动目录，目录所有者必须是 root
 $ chown root:mysftp /home/asftp
+
+# 权限必须为755
 $ chmod 755 /home/asftp
 ```
-## 4 在用户的home目录中创建一个上传目录
+### 4 在配置的登陆目录创建一个上传目录
+因为配置的登陆目录(家目录)的所属者为`root`，所以普通用户没有写权限，也就不能上传文件，所以需要新建一个相应所属用户的目录，用于相应的登陆用户上传文件。
+
 目录所有者为asftp，所有组为mysftp，所有者有写入权限，所有组无写入权限。
 ```bash
 $ mkdir -p /home/asftp/upload
 $ chown asftp:mysftp /home/asftp/upload
-$ chmod 755 /home/asftp/upload
 ```
-## 5 修改sshd的配置文件
+### 5 修改sshd的配置文件
 编辑配置文件`/etc/ssh/sshd_config`
 ```bash
 #Subsystem      sftp    /usr/lib/openssh/sftp-server
@@ -60,12 +84,19 @@ Match Group mysftp
 注释掉默认指定的sftp程序，另起一行修改为`internal-sftp`，表示使用内部sftp，性能比较高。
 - `Match Group mysftp`
 如果用户是 mysftp 组中的一员，那么将应用下面提到的规则到这个条目。
-- `ChrootDirectory %h`
-意味着用户只能在他们自己各自的家目录中更改目录，而不能超出他们各自的家目录。
+这里是对登录用户的权限限定配置 Match 会对匹配到的用户或用户组起作用且高于 sshd 的通项配置
 - `ForceCommand internal-sftp`
-用户被限制到只能使用内部 sftp 命令。
+强制用户登录会话时使用的初始命令。如果如上配置了此项，则 Match 到的用户只能使用 sftp 协议登录，而无法使用 ssh 登录，会被提示`This service allows sftp connections only.`
+- `ChrootDirectory %h`
+用户的可活动目录(登陆目录)，可以用 `%h` 标识用户家目录; `%u` 代表用户名。 当 Match 匹配的用户登录后，会话的根目录会切换至此目录。
+这里要尤其注意两个问题：
+  - chroot 路径上的所有目录，所有者必须是 root，权限最大为 0755，这一点必须要注意而且符合。所以如果以非 root 用户登录时，我们需要在 chroot 下新建一个登录用户有权限操作的目录，这也是第4步创建upload目录的原因。
+  - chroot 一旦设定，则相应的用户登录时会话的根目录 "`/`" 切换为此目录，如果你此时使用 ssh 而非 sftp 协议登录，则很有可能会被提示：`/bin/bash: No such file or directory`
+  这则提示非常的正确，对于此时登录的用户，会话中的根目录 "`/`" 已经切换为你所设置的 chroot 目录，除非你的 chroot 就是系统的 "/" 目录，否则此时的 `chroot/bin` 下是不会有 `bash` 命令的，这就类似添加用户时设定的 `-s /bin/false` 参数，shell 的初始命令式 `/bin/false` 自然就无法远程 ssh 登录了。
+  所以注意不要将正常可以使用ssh登陆的用户加入到匹配的组`mysftp`，会导致正常用户不能用ssh登陆。
 
-## 6 重启ssh服务
+
+### 6 重启ssh服务
 ```bash
 $ systemctl restart ssh.service
 
@@ -83,7 +114,10 @@ $ systemctl status ssh.service
    CGroup: /system.slice/ssh.service
            └─2461 /usr/sbin/sshd -D
 ```
-## 7 测试sftp
+>再次注意：!!
+1. chroot 可能带来的问题，因为 chroot 会将会话的根目录切换至此，所以 ssh 登录很可能会提示 `/bin/bash: No such file or directory` 的错误，因为此会话的路径会为 `chroot/bin/bash`
+2. `ForceCommand` 为会话开始时的初始命令 如果指定了比如 `internal-sftp`，则会提示 `This service allows sftp connections only.` 这就如同 `usermod -s /bin/false` 命令一样，用户登录会话时无法调用 `/bin/bash` 命令，自然无法 ssh 登录服务器。
+### 7 测试sftp
 登录到 sftp 服务器的同一个网络上的任何其它主机上进行连接测试。
 ```bash
 $ sftp -P 2222 asftp@192.168.56.1
