@@ -1,0 +1,483 @@
+<!doctype html><html lang=zh-hans>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=HandheldFriendly content="True">
+<meta http-equiv=x-ua-compatible content="IE=edge">
+<meta http-equiv=cache-control content="no-transform">
+<meta http-equiv=cache-control content="no-siteapp">
+<meta name=generator content="Hugo 0.87.0">
+<link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>">
+<title>Linux ps命令 - ⚝</title>
+<meta name=author content="qlel">
+<meta name=description content="A minimal Hugo theme with nice theme color.">
+<meta name=keywords content="linux,shell,ps">
+<meta property="og:title" content="Linux ps命令">
+<meta name=twitter:title content="Linux ps命令">
+<meta property="og:type" content="article">
+<meta property="og:url" content="/post/linux-ps%E5%91%BD%E4%BB%A4/"><meta property="og:description" content="ps命令显示正在运行进程的快照。如果要实时显示正在运行的进程，请使用top命令。">
+<meta name=twitter:description content="ps命令显示正在运行进程的快照。如果要实时显示正在运行的进程，请使用top命令。"><meta property="og:image" content="/img/og.png">
+<meta name=twitter:card content="summary_large_image">
+<meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-08-22T17:48:55+08:00"><meta property="article:modified_time" content="2021-08-22T17:48:55+08:00">
+<style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style>
+<link rel=stylesheet href=/assets/css/fuji.min.css>
+</head>
+<body data-theme=auto data-theme-auto=true>
+<script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script>
+<header>
+<div class="container-lg clearfix">
+<div class="col-12 header">
+<a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span>
+</div>
+</div>
+</header>
+<main>
+<div class="container-lg clearfix">
+<div class="col-12 col-md-9 float-left content">
+<article>
+<h2 class="post-item post-title">
+<a href=/post/linux-ps%E5%91%BD%E4%BB%A4/>Linux ps命令</a>
+</h2>
+<div class="post-item post-meta">
+<span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-08-22</span>
+<span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;1328 字</span>
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/linux>linux</a>&nbsp;<a href=/tags/shell>shell</a>&nbsp;<a href=/tags/ps>ps</a>&nbsp;</span>
+</div>
+<div class="post-content markdown-body">
+<p><code>ps</code>命令显示正在运行进程的快照。如果要实时显示正在运行的进程，请使用<code>top</code>命令。</p>
+<h2 id=命令选项风格>命令选项风格</h2>
+<p><code>ps</code> 命令支持的 3 种语法格式:</p>
+<ul>
+<li>UNIX 风格。选项可以组合在一起，并且选项前必须有 &ldquo;<code>-</code>&rdquo; 连字符</li>
+<li>BSD 风格。选项可以组合在一起，但是选项前没有 &ldquo;<code>-</code>&rdquo; 连字符</li>
+<li>GNU 风格的长选项。 选项前有 &ldquo;<code>--</code>&rdquo; 连字符</li>
+</ul>
+<p>这里只介绍和使用 UNIX 风格。</p>
+<h2 id=选项>选项</h2>
+<h3 id=通用>通用</h3>
+<ul>
+<li><code>-A</code>或<code>-e</code>: 显示所有进程</li>
+<li><code>-a</code>: 显示同一终端下的所有程序</li>
+<li><code>-d</code>: 显示所有进程，但省略所有的会话引线</li>
+<li><code>-N</code>: 显示所有的程序，除了执行ps指令终端机下的程序之外</li>
+</ul>
+<h3 id=有列表值>有列表值</h3>
+<p>这些选项接受以空格分隔或逗号分隔的列表。它们可以被使用多次。</p>
+<p>例如：<code>ps -p "1 2" -p 3,4</code></p>
+<ul>
+<li><code>-123</code>或<code>-p cmdlist</code>: 查找pid为123的进程，查找多个pid可以<code>ps -1619 1583</code></li>
+<li><code>-C cmdlist</code>: 指定执行指令的名称，并列出这些指令的程序的状况。</li>
+<li><code>-G cmdlist</code>或<code>-g cmdlist</code>: 列出这些群组RGID的程序的状况，也可使用群组名称来指定</li>
+<li><code>-s cmdlist</code>: 查看指定会话id的进程</li>
+<li><code>-t cmdlist</code>: 查看指定终端tty号码的进程，如<code>ps -t 1,2</code></li>
+<li><code>-U cmdlist</code>或<code>-u cmdlist</code>: 查看指定用户id或名称的进程</li>
+</ul>
+<h3 id=输出格式>输出格式</h3>
+<ul>
+<li><code>-c</code>: 显示 <code>-l</code> 选项的不同调度的进程信息。多了CLS和PRI栏位</li>
+<li><code>-f</code>或<code>-f</code>: 显示所有字段列</li>
+<li><code>-j</code>: 工作模式</li>
+<li><code>-l</code>: 长格式，一般与<code>-y</code>一起使用</li>
+<li><code>-y</code>: 不显示F(flag)栏位，并以RSS栏位取代ADDR栏位</li>
+<li><code>-M</code>: 添加一列安全数据。</li>
+<li><code>-o format</code>: 自定义格式。
+<ul>
+<li>format是空格或逗号分隔的列表字段。</li>
+<li>字段名可根据需要重命名，如：<code>ps -o pid,ruser=RealUser -o comm=Command</code></li>
+<li>提供了显式的宽度控制，如<code>ps -o pid,uid:10,cmd:40=命令,time</code></li>
+</ul>
+</li>
+<li><code>-O format</code>: 类似<code>-o</code>，但是提供了一些默认字段列</li>
+</ul>
+<h3 id=输出修饰符>输出修饰符</h3>
+<ul>
+<li><code>-H</code>: 显示树结构</li>
+<li><code>-w</code>: 宽输出。使用此选项两次可获得无限宽度。</li>
+</ul>
+<h3 id=线程显示>线程显示</h3>
+<ul>
+<li><code>-L</code>: 显示线程，可能包含LWP和NLWP列。</li>
+<li><code>-m</code>: 在进程之后显示线程。</li>
+<li><code>-T</code>: 显示线程，可能带有SPID列。</li>
+</ul>
+<h2 id=状态说明>状态说明</h2>
+<h3 id=进程标志f>进程标志F</h3>
+<p><code>F</code>字段列说明：</p>
+<ul>
+<li><code>1</code>: fork进程，但没执行</li>
+<li><code>4</code>: 使用超级用户权限</li>
+</ul>
+<h3 id=进程状态码s>进程状态码S</h3>
+<p><code>S</code>或<code>STAT</code>或<code>STATE</code>字段列描述各种进程状态：</p>
+<ul>
+<li><code>D</code>: 无法中断的休眠状态(通常 IO 的进程)</li>
+<li><code>I</code>: 空闲内核线程</li>
+<li><code>R</code>: 正在运行或可运行（在运行队列上）</li>
+<li><code>S</code>: 休眠状态(等待事件完成)</li>
+<li><code>T</code>: 通过控制信号停止</li>
+<li><code>t</code>: 追踪debug期间被停止</li>
+<li><code>W</code>: 进入内存交换(自 2.6.xx 内核起无效)</li>
+<li><code>X</code>: 死了的进程(永远不会看到)</li>
+<li><code>Z</code>: 僵尸进程。已终止但暂时无法消除</li>
+</ul>
+<p>对应BSD风格，可能还有额外的状态：</p>
+<ul>
+<li><code>&lt;</code>: 高优先级</li>
+<li><code>N</code>: 低优先级</li>
+<li><code>L</code>: 已将页锁到内存中</li>
+<li><code>s</code>: 主进程</li>
+<li><code>l</code>: 表示多线程</li>
+<li><code>+</code>: 位于前台的进程</li>
+</ul>
+<h2 id=常用示例>常用示例</h2>
+<p>显示所有进程：</p>
+<pre><code class=language-bash># ps -ef 和 ps -el 都是显示所有进程
+$ ps  -ef
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 Jul15 ?        00:00:00 /init
+root        17     1  0 Jul15 ?        00:07:58 /usr/sbin/smartdns
+root      1582     1  0 Aug05 tty1     00:00:00 /init
+qlel      1583  1582  0 Aug05 tty1     00:00:00 -bash
+root      1592     1  0 Aug05 tty2     00:00:00 /init
+qlel      1593  1592  0 Aug05 tty2     00:00:00 -bash
+qlel      1736  1583  1 10:53 tty1     00:00:00 ps -ef
+
+# -el 会多些字段
+$ ps  -el
+F S   UID   PID  PPID  C PRI  NI ADDR SZ WCHAN  TTY          TIME CMD
+0 S     0     1     0  0  80   0 -  2235 ?      ?        00:00:00 init
+0 S     0    17     1  0  80   0 -  3235 ?      ?        00:07:58 smartdns
+0 S     0  1582     1  0  80   0 -  2236 -      tty1     00:00:00 init
+0 S  1000  1583  1582  0  80   0 -  3792 -      tty1     00:00:00 bash
+0 S     0  1592     1  0  80   0 -  2236 -      tty2     00:00:00 init
+0 S  1000  1593  1592  0  80   0 -  3759 -      tty2     00:00:00 bash
+0 R  1000  1737  1583  0  80   0 -  4139 -      tty1     00:00:00 ps
+</code></pre>
+<p>显示指定名称的进程：</p>
+<pre><code class=language-bash>$ ps -C smartdns,bash
+  PID TTY          TIME CMD
+   17 ?        00:07:58 smartdns
+ 1583 tty1     00:00:00 bash
+ 1593 tty2     00:00:00 bash
+
+$ ps -f -C smartdns,bash
+UID        PID  PPID  C STIME TTY          TIME CMD
+root        17     1  0 Jul15 ?        00:07:58 /usr/sbin/smartdns
+qlel      1583  1582  0 Aug05 tty1     00:00:00 -bash
+qlel      1593  1592  0 Aug05 tty2     00:00:00 -bash
+</code></pre>
+<p>根据线程来过滤进程:</p>
+<pre><code class=language-bash>ps -L 1234
+</code></pre>
+<p>显示指定字段列：</p>
+<pre><code class=language-bash>$ ps -e -o uid,pid,f,s,%cpu,%mem,cmd,comm
+  UID   PID F S %CPU %MEM CMD                         COMMAND
+    0     1 0 S  0.0  0.0 /init                       init
+    0    17 0 S  0.0  0.0 /usr/sbin/smartdns          smartdns
+    0  1582 0 S  0.0  0.0 /init                       init
+ 1000  1583 0 S  0.0  0.0 -bash                       bash
+    0  1592 0 S  0.0  0.0 /init                       init
+ 1000  1593 0 S  0.0  0.0 -bash                       bash
+ 1000  1746 0 R  0.0  0.0 ps -e -o uid,pid,f,s,%cpu,% ps
+</code></pre>
+</div>
+</article>
+</div>
+<aside class="col-12 col-md-3 float-left sidebar">
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3><nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#命令选项风格>命令选项风格</a></li>
+<li><a href=#选项>选项</a>
+<ul>
+<li><a href=#通用>通用</a></li>
+<li><a href=#有列表值>有列表值</a></li>
+<li><a href=#输出格式>输出格式</a></li>
+<li><a href=#输出修饰符>输出修饰符</a></li>
+<li><a href=#线程显示>线程显示</a></li>
+</ul>
+</li>
+<li><a href=#状态说明>状态说明</a>
+<ul>
+<li><a href=#进程标志f>进程标志F</a></li>
+<li><a href=#进程状态码s>进程状态码S</a></li>
+</ul>
+</li>
+<li><a href=#常用示例>常用示例</a></li>
+</ul>
+</li>
+</ul>
+</nav></div>
+</aside>
+</div>
+<div class=btn>
+<div class=btn-menu id=btn-menu>
+<i class="iconfont icon-grid-sharp"></i>
+</div>
+<div class=btn-toggle-mode>
+<i class="iconfont icon-contrast-sharp"></i>
+</div>
+<div class=btn-scroll-top>
+<i class="iconfont icon-chevron-up-circle-sharp"></i>
+</div>
+</div>
+<aside class=sidebar-mobile style=display:none>
+<div class=sidebar-wrapper>
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#命令选项风格>命令选项风格</a></li>
+<li><a href=#选项>选项</a>
+<ul>
+<li><a href=#通用>通用</a></li>
+<li><a href=#有列表值>有列表值</a></li>
+<li><a href=#输出格式>输出格式</a></li>
+<li><a href=#输出修饰符>输出修饰符</a></li>
+<li><a href=#线程显示>线程显示</a></li>
+</ul>
+</li>
+<li><a href=#状态说明>状态说明</a>
+<ul>
+<li><a href=#进程标志f>进程标志F</a></li>
+<li><a href=#进程状态码s>进程状态码S</a></li>
+</ul>
+</li>
+<li><a href=#常用示例>常用示例</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</aside>
+</main>
+<footer>
+<div class="container-lg clearfix">
+<div class="col-12 footer">
+<span>&copy; 2020-2021
+<a href=/>qlel</a>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建
+</span>
+</div>
+</div>
+</footer>
+<script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script>
+<script defer src=/assets/js/fuji.min.js></script>
+<link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/auto-render.min.js onload=renderMathInElement(document.body)></script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!doctype html><html lang=zh-hans>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=HandheldFriendly content="True">
+<meta http-equiv=x-ua-compatible content="IE=edge">
+<meta http-equiv=cache-control content="no-transform">
+<meta http-equiv=cache-control content="no-siteapp">
+<meta name=generator content="Hugo 0.87.0">
+<link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>">
+<title>Linux资源限制 - ⚝</title>
+<meta name=author content="qlel">
+<meta name=description content="A minimal Hugo theme with nice theme color.">
+<meta name=keywords content="linux,ulimit">
+<meta property="og:title" content="Linux资源限制">
+<meta name=twitter:title content="Linux资源限制">
+<meta property="og:type" content="article">
+<meta property="og:url" content="/post/linux%E8%B5%84%E6%BA%90%E9%99%90%E5%88%B6/"><meta property="og:description" content="了解Linux资源限制对系统配置和优化有帮助.">
+<meta name=twitter:description content="了解Linux资源限制对系统配置和优化有帮助."><meta property="og:image" content="/img/og.png">
+<meta name=twitter:card content="summary_large_image">
+<meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-08-22T17:43:06+08:00"><meta property="article:modified_time" content="2021-08-22T17:43:06+08:00">
+<style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style>
+<link rel=stylesheet href=/assets/css/fuji.min.css>
+</head>
+<body data-theme=auto data-theme-auto=true>
+<script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script>
+<header>
+<div class="container-lg clearfix">
+<div class="col-12 header">
+<a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span>
+</div>
+</div>
+</header>
+<main>
+<div class="container-lg clearfix">
+<div class="col-12 col-md-9 float-left content">
+<article>
+<h2 class="post-item post-title">
+<a href=/post/linux%E8%B5%84%E6%BA%90%E9%99%90%E5%88%B6/>Linux资源限制</a>
+</h2>
+<div class="post-item post-meta">
+<span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-08-22</span>
+<span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;1288 字</span>
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/linux>linux</a>&nbsp;<a href=/tags/ulimit>ulimit</a>&nbsp;</span>
+</div>
+<div class="post-content markdown-body">
+<p>了解Linux资源限制对系统配置和优化有帮助.</p>
+<h2 id=linux资源限制>Linux资源限制</h2>
+<ul>
+<li>永久修改:
+<ul>
+<li><code>/etc/security/limits.conf</code></li>
+<li><code>/etc/security/limits.d/*</code></li>
+<li>systemd对单个应用的限制</li>
+</ul>
+</li>
+<li>临时修改: <code>ulimit</code>命令</li>
+</ul>
+<h3 id=limitsconf>limits.conf</h3>
+<p><code>/etc/security/limits.conf</code> 文件实际是 Linux PAM（插入式认证模块，Pluggable Authentication Modules）中 <code>pam_limits.so</code> 的配置文件。</p>
+<p><code>/etc/security/limits.conf</code> 配置解析:</p>
+<pre><code class=language-ini># /etc/security/limits.conf
+#
+#此文件为通过 PAM 登录的用户设置资源限制。
+#它不会影响系统服务的资源限制。
+#
+#请注意, /etc/security/limits.d下按照字母顺序排列的配置文件会覆盖 /etc/security/limits.conf中的domain相同的的配置
+#
+#每行描述一个用户的限制，格式如下：
+#
+#&lt;domain&gt;        &lt;type&gt;  &lt;item&gt;  &lt;value&gt;
+#
+#&lt;domain&gt; 可以是:
+#        - 用户名
+#        - 用户组, 语法：@group 
+#        - 通配符 * ，表示所有用户
+#        - 通配符 % , 也可用于 %group ，最大登录数限制 maxlogin limit
+#        - NOTE: 组和通配符限制不适用于 root
+#          要限制 root ，&lt;domain&gt; 必须明确指定为 root
+#
+#&lt;type&gt; :
+#        - &quot;soft&quot; 强制软限制。也可以理解为警告值
+#        - &quot;hard&quot; 强制硬限制。系统中所能设定的最大值。soft 的限制不能比 hard 限制高
+#        - &quot;-&quot;    同时设置了soft和hard的值
+#
+#&lt;item&gt; :
+#        - core - 限制内核文件的大小 (KB)
+#        - data - 最大数据大小 (KB)
+#        - fsize - 最大文件大小 (KB)
+#        - memlock - 最大锁定内存地址空间 (KB)
+#        - nofile - 最大打开的文件数(以文件描叙符，file descripter计数) 
+#        - rss - 最大驻留设置大小 (KB)
+#        - stack - 最大栈大小 (KB)
+#        - cpu - 最多cpu占用时间 (MIN)
+#        - nproc - 进程的最大数目
+#        - as - 地址空间限制  (KB)
+#        - maxlogins - 此用户允许登录的最大数目
+#        - maxsyslogins - 系统最大同时在线用户数
+#        - priority - 运行用户进程的优先级
+#        - locks -  用户可以持有的文件锁的最大数量
+#        - sigpending - 最大挂起信号数
+#        - msgqueue - POSIX消息队列使用的最大内存 (bytes)
+#        - nice - 允许提升到值的最大nice优先级: [-20, 19]
+#        - rtprio - 最大实时优先级
+#        - chroot - 改变家目录 (Debian特有)
+#
+#&lt;domain&gt;      &lt;type&gt;  &lt;item&gt;         &lt;value&gt;
+#
+
+#*               soft    core            0
+#root            hard    core            100000
+#*               hard    rss             10000
+#@student        hard    nproc           20
+#@faculty        soft    nproc           20
+#@faculty        hard    nproc           50
+#ftp             hard    nproc           0
+#ftp             -       chroot          /ftp
+#@student        -       maxlogins       4
+
+# End of file
+
+</code></pre>
+<blockquote>
+<p>注意不能设置 <code>nofile</code>不能设置 <code>unlimited</code>，<code>noproc</code>可以.</p>
+</blockquote>
+<h3 id=ulimit>ulimit</h3>
+<p><code>ulimit</code>是bash内键命令，它具有一套参数集，用于为由它生成的shell进程及其子进程的资源使用设置限制。</p>
+<pre><code class=language-bash>ulimit: ulimit [-SHabcdefiklmnpqrstuvxPT] [limit]
+    修改shell资源限制。
+
+    选项:
+      -S        软限制 soft
+      -H        硬限制 hard
+      -a        打印当前所有限制
+      -b        套接字缓冲区大小
+      -c        创建核心文件的最大大小
+      -d        进程数据段的最大大小
+      -e        最大调度优先级（nice）
+      -f        shell 及其子进程写入的文件的最大大小
+      -i        最大挂起信号数
+      -k        为该进程分配的最大 kqueue 数
+      -l        进程可以锁定到内存中的最大大小
+      -m        最大驻留集大小
+      -n        打开的文件描述符的最大数量
+      -p        管道缓冲区大小
+      -q        POSIX 消息队列中的最大字节数
+      -r        最大实时调度优先级
+      -s        最大堆栈大小
+      -t        以秒为单位的最大 CPU 时间
+      -u        最大用户进程数
+      -v        虚拟内存的大小
+      -x        最大文件锁数
+      -P        最大伪终端数
+      -T        最大线程数
+
+    并非所有选项都适用于所有平台。
+
+    如果给定了 LIMIT，则为指定资源的新值； 
+    特殊的 LIMIT 值“soft”、“hard”和“unlimited”分别代表当前软限制、当前硬限制和无限制。
+    否则，打印指定资源的当前值。 如果没有给出选项，则假定为 -f。
+
+    值以 1024 字节为增量，但 -t（以秒为单位）、-p（以 512 字节为增量）和 -u（未缩放的进程数）除外。
+
+</code></pre>
+</div>
+</article>
+</div>
+<aside class="col-12 col-md-3 float-left sidebar">
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3><nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#linux资源限制>Linux资源限制</a>
+<ul>
+<li><a href=#limitsconf>limits.conf</a></li>
+<li><a href=#ulimit>ulimit</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav></div>
+</aside>
+</div>
+<div class=btn>
+<div class=btn-menu id=btn-menu>
+<i class="iconfont icon-grid-sharp"></i>
+</div>
+<div class=btn-toggle-mode>
+<i class="iconfont icon-contrast-sharp"></i>
+</div>
+<div class=btn-scroll-top>
+<i class="iconfont icon-chevron-up-circle-sharp"></i>
+</div>
+</div>
+<aside class=sidebar-mobile style=display:none>
+<div class=sidebar-wrapper>
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#linux资源限制>Linux资源限制</a>
+<ul>
+<li><a href=#limitsconf>limits.conf</a></li>
+<li><a href=#ulimit>ulimit</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</aside>
+</main>
+<footer>
+<div class="container-lg clearfix">
+<div class="col-12 footer">
+<span>&copy; 2020-2021
+<a href=/>qlel</a>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建
+</span>
+</div>
+</div>
+</footer>
+<script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script>
+<script defer src=/assets/js/fuji.min.js></script>
+<link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/auto-render.min.js onload=renderMathInElement(document.body)></script>
+</body>
+</html>

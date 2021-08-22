@@ -1,122 +1,667 @@
-<!doctype html><html lang=zh-hans><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=HandheldFriendly content="True"><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="no-transform"><meta http-equiv=cache-control content="no-siteapp"><meta name=generator content="Hugo 0.84.4"><link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>"><title>Bash One Liners 3 重定向相关翻译与理解 - ⚝</title><meta name=author content="qlel"><meta name=description content="A minimal Hugo theme with nice theme color."><meta name=keywords content="linux,shell,bash"><meta property="og:title" content="Bash One Liners 3 重定向相关翻译与理解"><meta name=twitter:title content="Bash One Liners 3 重定向相关翻译与理解"><meta property="og:type" content="article"><meta property="og:url" content="/post/bash-one-liners-3-%E9%87%8D%E5%AE%9A%E5%90%91%E7%9B%B8%E5%85%B3%E7%BF%BB%E8%AF%91%E4%B8%8E%E7%90%86%E8%A7%A3/"><meta property="og:description" content="重定向其实是通过操作文件描述符来完成的，这样会更容易理解。"><meta name=twitter:description content="重定向其实是通过操作文件描述符来完成的，这样会更容易理解。"><meta property="og:image" content="/img/og.png"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-07-10T14:25:39+08:00"><meta property="article:modified_time" content="2021-07-10T14:25:39+08:00"><style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style><link rel=stylesheet href=/assets/css/fuji.min.css></head><body data-theme=auto data-theme-auto=true><script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script><header><div class="container-lg clearfix"><div class="col-12 header"><a class=title-main href=/>⚝</a>
-<span class=title-sub>时间总是不够，流逝得太快了！</span></div></div></header><main><div class="container-lg clearfix"><div class="col-12 col-md-9 float-left content"><article><h2 class="post-item post-title"><a href=/post/bash-one-liners-3-%E9%87%8D%E5%AE%9A%E5%90%91%E7%9B%B8%E5%85%B3%E7%BF%BB%E8%AF%91%E4%B8%8E%E7%90%86%E8%A7%A3/>Bash One Liners 3 重定向相关翻译与理解</a></h2><div class="post-item post-meta"><span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-07-10</span>
+<!doctype html><html lang=zh-hans>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=HandheldFriendly content="True">
+<meta http-equiv=x-ua-compatible content="IE=edge">
+<meta http-equiv=cache-control content="no-transform">
+<meta http-equiv=cache-control content="no-siteapp">
+<meta name=generator content="Hugo 0.87.0">
+<link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>">
+<title>Bash One Liners 3 重定向相关翻译与理解 - ⚝</title>
+<meta name=author content="qlel">
+<meta name=description content="A minimal Hugo theme with nice theme color.">
+<meta name=keywords content="linux,shell,bash">
+<meta property="og:title" content="Bash One Liners 3 重定向相关翻译与理解">
+<meta name=twitter:title content="Bash One Liners 3 重定向相关翻译与理解">
+<meta property="og:type" content="article">
+<meta property="og:url" content="/post/bash-one-liners-3-%E9%87%8D%E5%AE%9A%E5%90%91%E7%9B%B8%E5%85%B3%E7%BF%BB%E8%AF%91%E4%B8%8E%E7%90%86%E8%A7%A3/"><meta property="og:description" content="重定向其实是通过操作文件描述符来完成的，这样会更容易理解。">
+<meta name=twitter:description content="重定向其实是通过操作文件描述符来完成的，这样会更容易理解。"><meta property="og:image" content="/img/og.png">
+<meta name=twitter:card content="summary_large_image">
+<meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-07-10T14:25:39+08:00"><meta property="article:modified_time" content="2021-07-10T14:25:39+08:00">
+<style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style>
+<link rel=stylesheet href=/assets/css/fuji.min.css>
+</head>
+<body data-theme=auto data-theme-auto=true>
+<script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script>
+<header>
+<div class="container-lg clearfix">
+<div class="col-12 header">
+<a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span>
+</div>
+</div>
+</header>
+<main>
+<div class="container-lg clearfix">
+<div class="col-12 col-md-9 float-left content">
+<article>
+<h2 class="post-item post-title">
+<a href=/post/bash-one-liners-3-%E9%87%8D%E5%AE%9A%E5%90%91%E7%9B%B8%E5%85%B3%E7%BF%BB%E8%AF%91%E4%B8%8E%E7%90%86%E8%A7%A3/>Bash One Liners 3 重定向相关翻译与理解</a>
+</h2>
+<div class="post-item post-meta">
+<span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-07-10</span>
 <span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;5417 字</span>
-<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/linux>linux</a>&nbsp;<a href=/tags/shell>shell</a>&nbsp;<a href=/tags/bash>bash</a>&nbsp;</span></div><div class="post-content markdown-body"><p>重定向其实是通过操作<strong>文件描述符</strong>来完成的，这样会更容易理解。</p><h2 id=0_概述>0_概述</h2><p>当 Bash 启动时，会自动创建三个标准的文件描述符，它们分别是 <code>stdin</code>（标准输入，文件描述符为<code>0</code>），<code>stdout</code>（标准输出，文件描述符为<code>1</code>）和 <code>stderr</code>（标准错误输出，文件描述符为<code>2</code>）。你也可以创建更多的文件描述符，例如3，4，5等等，或者关闭它们，又或者拷贝它们。你可以从对应的文件中读取或者写入内容。</p><p>文件描述符总是指向某个文件（除非它们被关闭）。通常情况下，Bash 启动的三个文件描述符 —— <code>stdin</code>，<code>stdout</code> 和 <code>stderr</code> 都是指向你的终端，从终端输入中读取内容，并且把标准输出和标准错误都送到终端上。</p><p>重定向符号：</p><ul><li><code>></code> 输出重定向到一个文件或设备 覆盖原来的文件</li><li><code>>!</code> 输出重定向到一个文件或设备 强制覆盖原来的文件</li><li><code>>></code> 输出重定向到一个文件或设备 追加原来的文件</li><li><code>&lt;</code> 输入重定向到一个程序 </li><li><code>>&</code>、<code>&></code>、<code>2>&1</code> 将标准输出和标准错误重定向到覆盖文件</li><li><code>|&</code> 将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</li></ul><blockquote><p>这是记住这个结构的一种方法（尽管它并不完全准确）：起初，<code>2>1</code> 可能看起来是将 stderr 重定向到 stdout 的好方法。 但是，它实际上会被解释为“将 stderr 重定向到名为 <code>1</code> 的文件”。 <code>&</code> <strong>表示后面和前面的是文件描述符而不是文件名</strong>。 所以构造变成：<code>2>&1</code>。</p></blockquote><p>假设你的终端对应的设备文件是 <code>/dev/tty0</code>，下面是 Bash 启动时文件描述符表的样子：</p><p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png></p><p>当 Bash 执行一个命令时，他会 fork 一个子进程（查看<code>man 2 fork</code>）。子进程会从父进程继承所有的文件描述符，设置好指定的重定向，最后执行该命令（查看<code>man 3 exec</code>）。</p><p>以下尝试用图表来可视化展现，重定向发生时文件描述符表的变化过程，这种方法可以帮助你更好的理解重定向功能。</p><h2 id=1_将命令的标准输出stdout重定向到文件>1_将命令的标准输出stdout重定向到文件</h2><pre><code class=language-bash>$ command &gt;file
-</code></pre><p><code>></code>是输出重定向操作符。Bash 首先会打开文件准备写入，如果文件打开成功，则将命令command的 <code>stdout</code> 指向之前打开的文件。如果打开失败，则不会继续执行命令。</p><p><code>command >file</code>的写法和<code>command 1>file</code>的写法是一样的，<code>1</code>是 <code>stdout</code> 对应的文件描述符。</p><p>下面的图片描述了上述命令执行时文件描述符表的变化过程。Bash 打开文件并将文件描述符 <code>1</code> 重定向由<code>/dev/tty0</code>替换为指向文件<code>file</code>的文件描述符。 因此，从现在开始写入文件描述符 <code>1</code> 的所有输出最终都会写入文件：</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stdout.png alt=redirect-stdout.png></p><h2 id=2_将命令的标准错误stderr重定向到文件>2_将命令的标准错误stderr重定向到文件</h2><pre><code class=language-bash>$ command 2&gt; file
-</code></pre><p>Bash 打开文件进行写入，获取该文件的文件描述符，并将文件描述符 <code>2</code> 替换为该文件的文件描述符。 所以现在任何写入 <code>stderr</code> 的内容都会写入文件。</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stderr.png alt=redirect-stderr.png></p><h2 id=3_将stdout和stderr都重定向到一个文件>3_将stdout和stderr都重定向到一个文件</h2><pre><code class=language-bash>$ command &amp;&gt;file
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/linux>linux</a>&nbsp;<a href=/tags/shell>shell</a>&nbsp;<a href=/tags/bash>bash</a>&nbsp;</span>
+</div>
+<div class="post-content markdown-body">
+<p>重定向其实是通过操作<strong>文件描述符</strong>来完成的，这样会更容易理解。</p>
+<h2 id=0_概述>0_概述</h2>
+<p>当 Bash 启动时，会自动创建三个标准的文件描述符，它们分别是 <code>stdin</code>（标准输入，文件描述符为<code>0</code>），<code>stdout</code>（标准输出，文件描述符为<code>1</code>）和 <code>stderr</code>（标准错误输出，文件描述符为<code>2</code>）。你也可以创建更多的文件描述符，例如3，4，5等等，或者关闭它们，又或者拷贝它们。你可以从对应的文件中读取或者写入内容。</p>
+<p>文件描述符总是指向某个文件（除非它们被关闭）。通常情况下，Bash 启动的三个文件描述符 —— <code>stdin</code>，<code>stdout</code> 和 <code>stderr</code> 都是指向你的终端，从终端输入中读取内容，并且把标准输出和标准错误都送到终端上。</p>
+<p>重定向符号：</p>
+<ul>
+<li><code>></code> 输出重定向到一个文件或设备 覆盖原来的文件</li>
+<li><code>>!</code> 输出重定向到一个文件或设备 强制覆盖原来的文件</li>
+<li><code>>></code> 输出重定向到一个文件或设备 追加原来的文件</li>
+<li><code>&lt;</code> 输入重定向到一个程序 </li>
+<li><code>>&</code>、<code>&></code>、<code>2>&1</code> 将标准输出和标准错误重定向到覆盖文件</li>
+<li><code>|&</code> 将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</li>
+</ul>
+<blockquote>
+<p>这是记住这个结构的一种方法（尽管它并不完全准确）：起初，<code>2>1</code> 可能看起来是将 stderr 重定向到 stdout 的好方法。 但是，它实际上会被解释为“将 stderr 重定向到名为 <code>1</code> 的文件”。 <code>&</code> <strong>表示后面和前面的是文件描述符而不是文件名</strong>。 所以构造变成：<code>2>&1</code>。</p>
+</blockquote>
+<p>假设你的终端对应的设备文件是 <code>/dev/tty0</code>，下面是 Bash 启动时文件描述符表的样子：</p>
+<p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png>
+</p>
+<p>当 Bash 执行一个命令时，他会 fork 一个子进程（查看<code>man 2 fork</code>）。子进程会从父进程继承所有的文件描述符，设置好指定的重定向，最后执行该命令（查看<code>man 3 exec</code>）。</p>
+<p>以下尝试用图表来可视化展现，重定向发生时文件描述符表的变化过程，这种方法可以帮助你更好的理解重定向功能。</p>
+<h2 id=1_将命令的标准输出stdout重定向到文件>1_将命令的标准输出stdout重定向到文件</h2>
+<pre><code class=language-bash>$ command &gt;file
+</code></pre>
+<p><code>></code>是输出重定向操作符。Bash 首先会打开文件准备写入，如果文件打开成功，则将命令command的 <code>stdout</code> 指向之前打开的文件。如果打开失败，则不会继续执行命令。</p>
+<p><code>command >file</code>的写法和<code>command 1>file</code>的写法是一样的，<code>1</code>是 <code>stdout</code> 对应的文件描述符。</p>
+<p>下面的图片描述了上述命令执行时文件描述符表的变化过程。Bash 打开文件并将文件描述符 <code>1</code> 重定向由<code>/dev/tty0</code>替换为指向文件<code>file</code>的文件描述符。 因此，从现在开始写入文件描述符 <code>1</code> 的所有输出最终都会写入文件：</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stdout.png alt=redirect-stdout.png>
+</p>
+<h2 id=2_将命令的标准错误stderr重定向到文件>2_将命令的标准错误stderr重定向到文件</h2>
+<pre><code class=language-bash>$ command 2&gt; file
+</code></pre>
+<p>Bash 打开文件进行写入，获取该文件的文件描述符，并将文件描述符 <code>2</code> 替换为该文件的文件描述符。 所以现在任何写入 <code>stderr</code> 的内容都会写入文件。</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stderr.png alt=redirect-stderr.png>
+</p>
+<h2 id=3_将stdout和stderr都重定向到一个文件>3_将stdout和stderr都重定向到一个文件</h2>
+<pre><code class=language-bash>$ command &amp;&gt;file
 
 # 或者
 $ command &gt;&amp;file
-</code></pre><p>这一行命令使用了<code>&></code>操作符，它将命令<code>command</code>的 stdout 和 stderr 都重定向到文件<code>file</code>中。</p><p>以下是 bash 重定向两个流后文件描述符表的样子：</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-stderr.png alt=redirect-stdout-stderr.png></p><p>如图所示，stdout 和 stderr 现在都指向文件。 因此，任何写入stdout和stderr的内容都会写入文件。</p><p>除此之外，还有几种方法可以将 stdout 和 stderr 同时重定向到同一个文件中。</p><pre><code class=language-bash>$ command &gt;file 2&gt;&amp;1
-</code></pre><p>这是将两个流重定向到文件的更常见的方法。 首先将 stdout 重定向到文件<code>file</code>，然后将 stderr 复制为与 stdout 相同。 所以两个流最终都指向文件。</p><p>当 Bash 在命令中遇到多个重定向操作时，它会<strong>从左到右</strong>依次处理。我们通过图表来依次推导这整个过程。初始时文件描述符表的样子：</p><p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png></p><p>现在 Bash 处理第一个重定向<code>>file</code>，之前已经解释过，它将使得 stdout 指向文件<code>file</code>：</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stdout.png alt=redirect-stdout.png></p><p>接下来，Bash 开始处理第二个重定向<code>2>&1</code>，它会把 stderr 重定向到 stdout 所指向的文件：</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-stderr.png alt=redirect-stdout-stderr.png></p><p>两个流都已重定向到文件。</p><hr><p>这里要注意不要错误的写成：</p><pre><code class=language-bash># 错误！
+</code></pre>
+<p>这一行命令使用了<code>&></code>操作符，它将命令<code>command</code>的 stdout 和 stderr 都重定向到文件<code>file</code>中。</p>
+<p>以下是 bash 重定向两个流后文件描述符表的样子：</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-stderr.png alt=redirect-stdout-stderr.png>
+</p>
+<p>如图所示，stdout 和 stderr 现在都指向文件。 因此，任何写入stdout和stderr的内容都会写入文件。</p>
+<p>除此之外，还有几种方法可以将 stdout 和 stderr 同时重定向到同一个文件中。</p>
+<pre><code class=language-bash>$ command &gt;file 2&gt;&amp;1
+</code></pre>
+<p>这是将两个流重定向到文件的更常见的方法。 首先将 stdout 重定向到文件<code>file</code>，然后将 stderr 复制为与 stdout 相同。 所以两个流最终都指向文件。</p>
+<p>当 Bash 在命令中遇到多个重定向操作时，它会<strong>从左到右</strong>依次处理。我们通过图表来依次推导这整个过程。初始时文件描述符表的样子：</p>
+<p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png>
+</p>
+<p>现在 Bash 处理第一个重定向<code>>file</code>，之前已经解释过，它将使得 stdout 指向文件<code>file</code>：</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stdout.png alt=redirect-stdout.png>
+</p>
+<p>接下来，Bash 开始处理第二个重定向<code>2>&1</code>，它会把 stderr 重定向到 stdout 所指向的文件：</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-stderr.png alt=redirect-stdout-stderr.png>
+</p>
+<p>两个流都已重定向到文件。</p>
+<hr>
+<p>这里要注意不要错误的写成：</p>
+<pre><code class=language-bash># 错误！
 $ command 2&gt;&amp;1 &gt;file
-</code></pre><p>在bash中重定向的顺序很重要！此命令仅将 stdout 重定向到文件。stderr 仍将打印到终端。为了理解为什么会发生这种情况，让我们再看一遍这些步骤。因此，在运行命令之前，文件描述符表如下所示：</p><p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png></p><p>现在 bash 从左到右处理重定向。 它首先看到 <code>2>&1</code> 所以它复制 stderr 到 stdout。 文件描述符表变为：</p><p><img class=img-zoomable src=/BashOneLiners/duplicate-stderr-stdout.png alt=duplicate-stderr-stdout.png></p><p>现在 bash 看到第二个重定向 <code>>file</code> 并将stdout重定向到文件<code>file</code>：</p><p><img class=img-zoomable src=/BashOneLiners/duplicate-stderr-stdout-stdout-file.png alt=duplicate-stderr-stdout-stdout-file.png></p><p>如同所示，stdout 指向了文件 <code>file</code>，但是 stderr 依然指向终端屏幕。所以，一定要注意重定向的书写顺序。</p><h2 id=4_丢弃命令的-stdout-输出>4_丢弃命令的 stdout 输出</h2><pre><code class=language-bash>$ command &gt; /dev/null
-</code></pre><p>特殊文件 <code>/dev/null</code> 会丢弃所有写入其中的数据。 所以我们在这里做的是将标准输出重定向到这个特殊文件，它会被丢弃。 从文件描述符表的角度来看，它是这样的：</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-dev-null.png alt=redirect-stdout-dev-null.png></p><p>类似的，基于前一条命令，我们可以做到把输出到 stdout 和 stderr 的内容都丢弃：</p><pre><code class=language-bash>$ command &gt;/dev/null 2&gt;&amp;1
+</code></pre>
+<p>在bash中重定向的顺序很重要！此命令仅将 stdout 重定向到文件。stderr 仍将打印到终端。为了理解为什么会发生这种情况，让我们再看一遍这些步骤。因此，在运行命令之前，文件描述符表如下所示：</p>
+<p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png>
+</p>
+<p>现在 bash 从左到右处理重定向。 它首先看到 <code>2>&1</code> 所以它复制 stderr 到 stdout。 文件描述符表变为：</p>
+<p><img class=img-zoomable src=/BashOneLiners/duplicate-stderr-stdout.png alt=duplicate-stderr-stdout.png>
+</p>
+<p>现在 bash 看到第二个重定向 <code>>file</code> 并将stdout重定向到文件<code>file</code>：</p>
+<p><img class=img-zoomable src=/BashOneLiners/duplicate-stderr-stdout-stdout-file.png alt=duplicate-stderr-stdout-stdout-file.png>
+</p>
+<p>如同所示，stdout 指向了文件 <code>file</code>，但是 stderr 依然指向终端屏幕。所以，一定要注意重定向的书写顺序。</p>
+<h2 id=4_丢弃命令的-stdout-输出>4_丢弃命令的 stdout 输出</h2>
+<pre><code class=language-bash>$ command &gt; /dev/null
+</code></pre>
+<p>特殊文件 <code>/dev/null</code> 会丢弃所有写入其中的数据。 所以我们在这里做的是将标准输出重定向到这个特殊文件，它会被丢弃。 从文件描述符表的角度来看，它是这样的：</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-dev-null.png alt=redirect-stdout-dev-null.png>
+</p>
+<p>类似的，基于前一条命令，我们可以做到把输出到 stdout 和 stderr 的内容都丢弃：</p>
+<pre><code class=language-bash>$ command &gt;/dev/null 2&gt;&amp;1
 
 # 或者
 $ command &amp;&gt;/dev/null
-</code></pre><p>此时的文件描述符表为：</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-stderr-dev-null.png alt=redirect-stdout-stderr-dev-null.png></p><h2 id=5_将文件内容重定向到命令的stdin>5_将文件内容重定向到命令的stdin</h2><pre><code class=language-bash>$ command &lt;file
-</code></pre><p>这里 bash 尝试在运行任何命令之前打开文件进行读取。 如果打开文件失败，bash 会错误退出并且不运行命令。 如果打开文件成功，bash 使用打开文件的文件描述符作为命令的标准输入文件描述符。</p><p>完成后，文件描述符表如下所示：</p><p><img class=img-zoomable src=/BashOneLiners/redirect-stdin.png alt=redirect-stdin.png></p><p>下面是一个例子，假如你想把文件的第一行读入到变量中：</p><pre><code class=language-bash>$ read -r line &lt; file
-</code></pre><p>Bash 的内置读取命令从标准输入中读取一行。 通过使用输入重定向运算符 <code>&lt;</code>，我们将其设置为从文件中读取行。</p><h2 id=6_重定向一堆字符串到命令的-stdin>6_重定向一堆字符串到命令的 stdin</h2><pre><code class=language-bash>$ command &lt;&lt;EOL
+</code></pre>
+<p>此时的文件描述符表为：</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stdout-stderr-dev-null.png alt=redirect-stdout-stderr-dev-null.png>
+</p>
+<h2 id=5_将文件内容重定向到命令的stdin>5_将文件内容重定向到命令的stdin</h2>
+<pre><code class=language-bash>$ command &lt;file
+</code></pre>
+<p>这里 bash 尝试在运行任何命令之前打开文件进行读取。 如果打开文件失败，bash 会错误退出并且不运行命令。 如果打开文件成功，bash 使用打开文件的文件描述符作为命令的标准输入文件描述符。</p>
+<p>完成后，文件描述符表如下所示：</p>
+<p><img class=img-zoomable src=/BashOneLiners/redirect-stdin.png alt=redirect-stdin.png>
+</p>
+<p>下面是一个例子，假如你想把文件的第一行读入到变量中：</p>
+<pre><code class=language-bash>$ read -r line &lt; file
+</code></pre>
+<p>Bash 的内置读取命令从标准输入中读取一行。 通过使用输入重定向运算符 <code>&lt;</code>，我们将其设置为从文件中读取行。</p>
+<h2 id=6_重定向一堆字符串到命令的-stdin>6_重定向一堆字符串到命令的 stdin</h2>
+<pre><code class=language-bash>$ command &lt;&lt;EOL
 your
 multi-line
 text
 goes
 here
 EOL
-</code></pre><p>这里用到了 here document 的语法<code>&lt;&lt;MARKER</code>。当 Bash 遇到该操作符是，它会从标准输入读取每一行，直到遇到一行以<code>MARKER</code>开头为止。这个例子中，Bash 读取到所有内容并传给<code>command</code>的 stdin。</p><p>假设你想去除一堆 URL 地址中的<code>http://</code>部分，可以用下面的一行命令：</p><pre><code class=language-bash>$ sed 's|http://||' &lt;&lt;EOF
+</code></pre>
+<p>这里用到了 here document 的语法<code>&lt;&lt;MARKER</code>。当 Bash 遇到该操作符是，它会从标准输入读取每一行，直到遇到一行以<code>MARKER</code>开头为止。这个例子中，Bash 读取到所有内容并传给<code>command</code>的 stdin。</p>
+<p>假设你想去除一堆 URL 地址中的<code>http://</code>部分，可以用下面的一行命令：</p>
+<pre><code class=language-bash>$ sed 's|http://||' &lt;&lt;EOF
 http://url1.com
 http://url2.com
 http://url3.com
 EOF
-</code></pre><p>输出结果：</p><pre><code class=language-bash>url1.com
+</code></pre>
+<p>输出结果：</p>
+<pre><code class=language-bash>url1.com
 url2.com
 url3.com
-</code></pre><h2 id=7_重定向一行文本到命令的-stdin>7_重定向一行文本到命令的 stdin</h2><pre><code class=language-bash>$ command &lt;&lt;&lt; &quot;foo bar baz&quot;
+</code></pre>
+<h2 id=7_重定向一行文本到命令的-stdin>7_重定向一行文本到命令的 stdin</h2>
+<pre><code class=language-bash>$ command &lt;&lt;&lt; &quot;foo bar baz&quot;
 
 # 等价于
 $ echo &quot;foo bar baz&quot; | command
-</code></pre><h2 id=8_将所有命令的-stderr-永久重定向到一个文件>8_将所有命令的 stderr 永久重定向到一个文件</h2><pre><code class=language-bash>$ exec 2&gt;file
+</code></pre>
+<h2 id=8_将所有命令的-stderr-永久重定向到一个文件>8_将所有命令的 stderr 永久重定向到一个文件</h2>
+<pre><code class=language-bash>$ exec 2&gt;file
 $ command1
 $ command2
 $ ...
-</code></pre><p>这一行命令中使用了 Bash 的内置命令<code>exec</code>。如果你在它之后指定重定向操作，重定向的效果为一直持续到退出脚本或者shell为止。</p><p>在这个例子中，<code>2>file</code>处理之后，随后所有命令的 stderr 都会重定向到文件<code>file</code>中。通过这种方法，你可以很方便的把脚本中所有命令的 stderr 都汇总到一个文件，同时又不用每一个命令之后都指定<code>2>file</code>。</p><p>一般情况下，<code>exec</code>可以接受命令的可选参数。如果指定了它，bash将使用该命令替换自身。因此，您得到的只是运行那个命令，没有创建更多的shell。</p><h2 id=9_使用自定义文件描述符打开文件进行读取>9_使用自定义文件描述符打开文件进行读取</h2><pre><code class=language-bash>$ exec 3&lt;file
-</code></pre><p>这里我们再次使用 <code>exec</code> 命令并指定 <code>3&lt;file</code> 重定向到它。 它的作用是打开文件进行读取，并将打开的文件描述符分配给 shell 的文件描述符编号 <code>3</code>。文件描述符表现在看起来像这样：</p><p><img class=img-zoomable src=/BashOneLiners/custom-fd.png alt=custom-fd.png></p><p>现在可以从文件描述符<code>3</code>中读取，如下所示：</p><pre><code class=language-bash>$ read -u 3 line
-</code></pre><p>这是从文件描述符<code>3</code>中读取一行。</p><p>一些常规的命令，例如 <code>grep</code>，还可以这么用：</p><pre><code class=language-bash>$ grep &quot;foo&quot; &lt;&amp;3
-</code></pre><p>这里发生的是文件描述符 <code>3</code> 被复制到文件描述符 <code>1</code>，也就是 <code>grep</code> 的 stdin 。 请记住，一旦读取了文件描述符，它就会被耗尽，需要关闭它并再次打开它才能使用它。 （不能在 bash 中倒带文件描述符 <code>fd</code>。）</p><p>使用完文件描述符 fd <code>3</code> 后，您可以通过以下方式关闭它：</p><pre><code class=language-bash>$ exec 3&gt;&amp;-
-</code></pre><p>这里的文件描述符<code>3</code>被欺骗到<code>-</code>，这是bash关闭这个文件描述符的特殊方式。</p><h2 id=10_使用自定义文件描述符打开文件进行写入>10_使用自定义文件描述符打开文件进行写入</h2><pre><code class=language-bash>$ exec 4&gt;file
-</code></pre><p>在这里，我们只需告诉bash打开文件进行写入，并为其分配编号<code>4</code>。文件描述符表如下所示：</p><p><img class=img-zoomable src=/BashOneLiners/custom-fd-writing.png alt=custom-fd-writing.png></p><p>如您所见，文件描述符不必按顺序使用，您可以打开任何您喜欢的文件描述符编号，从 <code>0</code> 到 <code>255</code>。</p><p>现在我们可以简单地写入文件描述符<code>4</code>：</p><pre><code class=language-bash>$ echo &quot;foo&quot; &gt;&amp;4
-</code></pre><p>可以关闭文件描述符 <code>4</code>：</p><pre><code class=language-bash>$ exec 4&gt;&amp;-
-</code></pre><h2 id=11_打开一个文件进行写入和读取>11_打开一个文件进行写入和读取</h2><pre><code class=language-bash>$ exec 3&lt;&gt;file
-</code></pre><p>这里我们使用菱形操作符 <code>&lt;></code>。 菱形操作符打开一个文件描述符用于读取和写入。</p><p>例如：</p><pre><code class=language-bash>$ echo &quot;foo bar&quot; &gt; file   # 写入字符串 &quot;foo bar&quot; 到文件 &quot;file&quot;.
+</code></pre>
+<p>这一行命令中使用了 Bash 的内置命令<code>exec</code>。如果你在它之后指定重定向操作，重定向的效果为一直持续到退出脚本或者shell为止。</p>
+<p>在这个例子中，<code>2>file</code>处理之后，随后所有命令的 stderr 都会重定向到文件<code>file</code>中。通过这种方法，你可以很方便的把脚本中所有命令的 stderr 都汇总到一个文件，同时又不用每一个命令之后都指定<code>2>file</code>。</p>
+<p>一般情况下，<code>exec</code>可以接受命令的可选参数。如果指定了它，bash将使用该命令替换自身。因此，您得到的只是运行那个命令，没有创建更多的shell。</p>
+<h2 id=9_使用自定义文件描述符打开文件进行读取>9_使用自定义文件描述符打开文件进行读取</h2>
+<pre><code class=language-bash>$ exec 3&lt;file
+</code></pre>
+<p>这里我们再次使用 <code>exec</code> 命令并指定 <code>3&lt;file</code> 重定向到它。 它的作用是打开文件进行读取，并将打开的文件描述符分配给 shell 的文件描述符编号 <code>3</code>。文件描述符表现在看起来像这样：</p>
+<p><img class=img-zoomable src=/BashOneLiners/custom-fd.png alt=custom-fd.png>
+</p>
+<p>现在可以从文件描述符<code>3</code>中读取，如下所示：</p>
+<pre><code class=language-bash>$ read -u 3 line
+</code></pre>
+<p>这是从文件描述符<code>3</code>中读取一行。</p>
+<p>一些常规的命令，例如 <code>grep</code>，还可以这么用：</p>
+<pre><code class=language-bash>$ grep &quot;foo&quot; &lt;&amp;3
+</code></pre>
+<p>这里发生的是文件描述符 <code>3</code> 被复制到文件描述符 <code>1</code>，也就是 <code>grep</code> 的 stdin 。 请记住，一旦读取了文件描述符，它就会被耗尽，需要关闭它并再次打开它才能使用它。 （不能在 bash 中倒带文件描述符 <code>fd</code>。）</p>
+<p>使用完文件描述符 fd <code>3</code> 后，您可以通过以下方式关闭它：</p>
+<pre><code class=language-bash>$ exec 3&gt;&amp;-
+</code></pre>
+<p>这里的文件描述符<code>3</code>被欺骗到<code>-</code>，这是bash关闭这个文件描述符的特殊方式。</p>
+<h2 id=10_使用自定义文件描述符打开文件进行写入>10_使用自定义文件描述符打开文件进行写入</h2>
+<pre><code class=language-bash>$ exec 4&gt;file
+</code></pre>
+<p>在这里，我们只需告诉bash打开文件进行写入，并为其分配编号<code>4</code>。文件描述符表如下所示：</p>
+<p><img class=img-zoomable src=/BashOneLiners/custom-fd-writing.png alt=custom-fd-writing.png>
+</p>
+<p>如您所见，文件描述符不必按顺序使用，您可以打开任何您喜欢的文件描述符编号，从 <code>0</code> 到 <code>255</code>。</p>
+<p>现在我们可以简单地写入文件描述符<code>4</code>：</p>
+<pre><code class=language-bash>$ echo &quot;foo&quot; &gt;&amp;4
+</code></pre>
+<p>可以关闭文件描述符 <code>4</code>：</p>
+<pre><code class=language-bash>$ exec 4&gt;&amp;-
+</code></pre>
+<h2 id=11_打开一个文件进行写入和读取>11_打开一个文件进行写入和读取</h2>
+<pre><code class=language-bash>$ exec 3&lt;&gt;file
+</code></pre>
+<p>这里我们使用菱形操作符 <code>&lt;></code>。 菱形操作符打开一个文件描述符用于读取和写入。</p>
+<p>例如：</p>
+<pre><code class=language-bash>$ echo &quot;foo bar&quot; &gt; file   # 写入字符串 &quot;foo bar&quot; 到文件 &quot;file&quot;.
 $ exec 5&lt;&gt; file           # 以读写方式打开 &quot;file&quot; 到文件描述符 5
 $ read -n 3 var &lt;&amp;5       # 从 fd 5 读取3个字符
 $ echo $var
-</code></pre><p>现在我们可以向文件中写入一些内容：</p><pre><code class=language-bash>$ echo -n + &gt;&amp;5           # 在第4个位置写入 '+'
+</code></pre>
+<p>现在我们可以向文件中写入一些内容：</p>
+<pre><code class=language-bash>$ echo -n + &gt;&amp;5           # 在第4个位置写入 '+'
 $ exec 5&gt;&amp;-               # 关闭 fd 5.
 $ cat file
-</code></pre><p>这将输出 <code>foo+bar</code>，因为我们在文件的第 4 个位置写了 + 字符。</p><h2 id=12_将多个命令的输出发送到一个文件>12_将多个命令的输出发送到一个文件</h2><pre><code class=language-bash>$ (command1; command2) &gt;file
-</code></pre><p>这一行命令使用<code>(commands)</code>语法，commands 会在一个子 shell 中执行。所以在这里，<code>command1</code>和<code>command2</code>会在子 shell 中运行，然后 Bash 将子 shell 的 stdout 重定向到文件中。</p><h2 id=13_通过文件在shell中执行命令>13_通过文件在shell中执行命令</h2><p>打开两个 shell，在shell_1中执行以下命令：</p><pre><code class=language-bash>mkfifo fifo
+</code></pre>
+<p>这将输出 <code>foo+bar</code>，因为我们在文件的第 4 个位置写了 + 字符。</p>
+<h2 id=12_将多个命令的输出发送到一个文件>12_将多个命令的输出发送到一个文件</h2>
+<pre><code class=language-bash>$ (command1; command2) &gt;file
+</code></pre>
+<p>这一行命令使用<code>(commands)</code>语法，commands 会在一个子 shell 中执行。所以在这里，<code>command1</code>和<code>command2</code>会在子 shell 中运行，然后 Bash 将子 shell 的 stdout 重定向到文件中。</p>
+<h2 id=13_通过文件在shell中执行命令>13_通过文件在shell中执行命令</h2>
+<p>打开两个 shell，在shell_1中执行以下命令：</p>
+<pre><code class=language-bash>mkfifo fifo
 exec &lt; fifo
-</code></pre><p>而在shell_2中，执行：</p><pre><code class=language-bash>exec 3&gt; fifo;
+</code></pre>
+<p>而在shell_2中，执行：</p>
+<pre><code class=language-bash>exec 3&gt; fifo;
 echo 'echo test' &gt;&amp;3
-</code></pre><p>现在看看shell_1。它会执行<code>echo test</code>。 可以继续向 <code>fifo</code> 写入命令，shell_1 将继续执行它们。</p><p>以下是原理：</p><p>在 shell_1 中，我们使用 <code>mkfifo</code> 命令创建一个名为 <code>fifo</code> 的命名管道。 命名管道（也称为 FIFO）类似于常规管道，不同之处在于它作为文件系统的一部分进行访问。 它可以被多个进程打开以进行读取或写入。 当进程通过 FIFO 交换数据时，内核会在内部传递所有数据，而不会将其写入文件系统。 因此，FIFO 特殊文件在文件系统上没有内容； 文件系统条目仅用作参考点，以便进程可以使用文件系统中的名称访问管道。</p><p>接下来，我们通过<code>exec &lt; fifo</code>命令，使用 <code>fifo</code> 作为当前 shell 的标准输入stdin。</p><p>现在在 shell_2 中，我们打开命名管道进行写入，并为其分配一个自定义文件描述符 <code>3</code>。接下来我们简单地将 <code>echo test</code> 写入文件描述符 <code>3</code>，该文件将转到 <code>fifo</code>。</p><p>由于 shell_1 的 stdin 连接到这个管道，它会执行它！</p><h2 id=14_通过bash访问一个网站>14_通过bash访问一个网站</h2><pre><code class=language-bash>$ exec 3&lt;&gt;/dev/tcp/www.baidu.com/80
+</code></pre>
+<p>现在看看shell_1。它会执行<code>echo test</code>。 可以继续向 <code>fifo</code> 写入命令，shell_1 将继续执行它们。</p>
+<p>以下是原理：</p>
+<p>在 shell_1 中，我们使用 <code>mkfifo</code> 命令创建一个名为 <code>fifo</code> 的命名管道。 命名管道（也称为 FIFO）类似于常规管道，不同之处在于它作为文件系统的一部分进行访问。 它可以被多个进程打开以进行读取或写入。 当进程通过 FIFO 交换数据时，内核会在内部传递所有数据，而不会将其写入文件系统。 因此，FIFO 特殊文件在文件系统上没有内容； 文件系统条目仅用作参考点，以便进程可以使用文件系统中的名称访问管道。</p>
+<p>接下来，我们通过<code>exec &lt; fifo</code>命令，使用 <code>fifo</code> 作为当前 shell 的标准输入stdin。</p>
+<p>现在在 shell_2 中，我们打开命名管道进行写入，并为其分配一个自定义文件描述符 <code>3</code>。接下来我们简单地将 <code>echo test</code> 写入文件描述符 <code>3</code>，该文件将转到 <code>fifo</code>。</p>
+<p>由于 shell_1 的 stdin 连接到这个管道，它会执行它！</p>
+<h2 id=14_通过bash访问一个网站>14_通过bash访问一个网站</h2>
+<pre><code class=language-bash>$ exec 3&lt;&gt;/dev/tcp/www.baidu.com/80
 $ echo -e &quot;GET / HTTP/1.1\n\n&quot; &gt;&amp;3
 $ cat &lt;&amp;3
-</code></pre><p>Bash 将 <code>/dev/tcp/host/port</code> 视为特殊文件。 它不需要存在于您的系统中。 这个特殊文件用于通过 bash 打开 tcp 连接。</p><p>在本例中，我们首先打开文件描述符 <code>3</code> 进行读写，并将其指向 <code>/dev/tcp/www.baidu.com/80</code> 特殊文件，该文件是通过端口 <code>80</code> 连接到 <code>www.baidu.com</code>。</p><p>接下来我们将 <code>GET / HTTP/1.1\n\n</code> 写入文件描述符 <code>3</code>。然后我们使用 <code>cat</code> 从相同的文件描述符读取响应。</p><p>同样，您可以通过 <code>/dev/udp/host/port</code> 特殊文件创建 UDP 连接。</p><p>使用 <code>/dev/tcp/host/port</code>，您甚至可以在 bash 中编写诸如端口扫描器之类的东西！</p><h2 id=15_重定向输出时防止覆盖文件内容>15_重定向输出时防止覆盖文件内容</h2><pre><code class=language-bash>$ set -o noclobber
-</code></pre><p>这将打开当前 shell 的 <code>noclobber</code> 选项。 <code>noclobber</code> 选项可防止您使用 <code>></code> 运算符覆盖现有文件。</p><p>如果你尝试将输出重定向到一个存在的文件，你会得到一个错误：</p><pre><code class=language-bash>$ program &gt; file
+</code></pre>
+<p>Bash 将 <code>/dev/tcp/host/port</code> 视为特殊文件。 它不需要存在于您的系统中。 这个特殊文件用于通过 bash 打开 tcp 连接。</p>
+<p>在本例中，我们首先打开文件描述符 <code>3</code> 进行读写，并将其指向 <code>/dev/tcp/www.baidu.com/80</code> 特殊文件，该文件是通过端口 <code>80</code> 连接到 <code>www.baidu.com</code>。</p>
+<p>接下来我们将 <code>GET / HTTP/1.1\n\n</code> 写入文件描述符 <code>3</code>。然后我们使用 <code>cat</code> 从相同的文件描述符读取响应。</p>
+<p>同样，您可以通过 <code>/dev/udp/host/port</code> 特殊文件创建 UDP 连接。</p>
+<p>使用 <code>/dev/tcp/host/port</code>，您甚至可以在 bash 中编写诸如端口扫描器之类的东西！</p>
+<h2 id=15_重定向输出时防止覆盖文件内容>15_重定向输出时防止覆盖文件内容</h2>
+<pre><code class=language-bash>$ set -o noclobber
+</code></pre>
+<p>这将打开当前 shell 的 <code>noclobber</code> 选项。 <code>noclobber</code> 选项可防止您使用 <code>></code> 运算符覆盖现有文件。</p>
+<p>如果你尝试将输出重定向到一个存在的文件，你会得到一个错误：</p>
+<pre><code class=language-bash>$ program &gt; file
 bash: file: cannot overwrite existing file
-</code></pre><p>如果100%确定要覆盖文件，请使用<code>>|</code>重定向操作符：</p><pre><code class=language-bash>$ program &gt;| file
-</code></pre><p>这会成功，因为它覆盖了 <code>noclobber</code> 选项。</p><h2 id=16_将标准输入重定向到文件并将其打印到标准输出>16_将标准输入重定向到文件并将其打印到标准输出</h2><pre><code class=language-bash>$ command | tee file
-</code></pre><p><code>tee</code> 命令非常方便。 它不是 bash 的一部分，但您会经常使用它。 它接受一个输入流并将其打印到标准输出和文件中</p><p>在这个例子中，它接受命令的标准输出，把它放在文件中，然后把它打印到标准输出。</p><p>以下是其工作原理的图示：</p><p><img class=img-zoomable src=/BashOneLiners/tee.png alt=tee.png></p><h2 id=17_将一个进程的标准输出发送到另一个进程的标准输入>17_将一个进程的标准输出发送到另一个进程的标准输入</h2><pre><code class=language-bash>$ command1 | command2
-</code></pre><p>一个管道<code>|</code>将 <code>command1</code> 的 stdout 与 <code>command2</code> 的 stdin 连接起来。</p><p>可以用图形来说明：</p><p><img class=img-zoomable src=/BashOneLiners/pipe.png alt=pipe.png></p><h2 id=18_将一个进程的-stdout-和-stderr-发送到另一个进程的-stdin>18_将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</h2><pre><code class=language-bash>$ command1 |&amp; command2
-</code></pre><p>这适用于从 4.0 开始的 bash 版本。 <code>|&</code> 重定向操作符通过管道将 <code>command1</code> 的 stdout 和 stderr 发送到 <code>command2</code> 的 stdin。</p><p>由于 bash 4.0 的新特性没有被广泛使用，旧的、更便携的方法是：</p><pre><code class=language-bash>$ command1 2&gt;&amp;1 | command2
-</code></pre><p>下图显示了文件描述符发生的情况：</p><p><img class=img-zoomable src=/BashOneLiners/pipe-stdout-stderr.png alt=pipe-stdout-stderr.png></p><h2 id=19_给出文件描述符名称>19_给出文件描述符名称</h2><pre><code class=language-bash>$ exec {filew}&gt;output_file
-</code></pre><p>命名文件描述符是 bash 4.1 的一个特性。 命名文件描述符看起来像 <code>{varname}</code>。 您可以像使用常规的数字文件描述符一样使用它们。 Bash 在内部选择一个空闲的文件描述符并为其分配一个名称。</p><h2 id=20_重定向顺序>20_重定向顺序</h2><p>可以把重定向放在你想要的任何地方。看看这3个例子，它们都是一样的：</p><pre><code class=language-bash>$ echo hello &gt;/tmp/example
+</code></pre>
+<p>如果100%确定要覆盖文件，请使用<code>>|</code>重定向操作符：</p>
+<pre><code class=language-bash>$ program &gt;| file
+</code></pre>
+<p>这会成功，因为它覆盖了 <code>noclobber</code> 选项。</p>
+<h2 id=16_将标准输入重定向到文件并将其打印到标准输出>16_将标准输入重定向到文件并将其打印到标准输出</h2>
+<pre><code class=language-bash>$ command | tee file
+</code></pre>
+<p><code>tee</code> 命令非常方便。 它不是 bash 的一部分，但您会经常使用它。 它接受一个输入流并将其打印到标准输出和文件中</p>
+<p>在这个例子中，它接受命令的标准输出，把它放在文件中，然后把它打印到标准输出。</p>
+<p>以下是其工作原理的图示：</p>
+<p><img class=img-zoomable src=/BashOneLiners/tee.png alt=tee.png>
+</p>
+<h2 id=17_将一个进程的标准输出发送到另一个进程的标准输入>17_将一个进程的标准输出发送到另一个进程的标准输入</h2>
+<pre><code class=language-bash>$ command1 | command2
+</code></pre>
+<p>一个管道<code>|</code>将 <code>command1</code> 的 stdout 与 <code>command2</code> 的 stdin 连接起来。</p>
+<p>可以用图形来说明：</p>
+<p><img class=img-zoomable src=/BashOneLiners/pipe.png alt=pipe.png>
+</p>
+<h2 id=18_将一个进程的-stdout-和-stderr-发送到另一个进程的-stdin>18_将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</h2>
+<pre><code class=language-bash>$ command1 |&amp; command2
+</code></pre>
+<p>这适用于从 4.0 开始的 bash 版本。 <code>|&</code> 重定向操作符通过管道将 <code>command1</code> 的 stdout 和 stderr 发送到 <code>command2</code> 的 stdin。</p>
+<p>由于 bash 4.0 的新特性没有被广泛使用，旧的、更便携的方法是：</p>
+<pre><code class=language-bash>$ command1 2&gt;&amp;1 | command2
+</code></pre>
+<p>下图显示了文件描述符发生的情况：</p>
+<p><img class=img-zoomable src=/BashOneLiners/pipe-stdout-stderr.png alt=pipe-stdout-stderr.png>
+</p>
+<h2 id=19_给出文件描述符名称>19_给出文件描述符名称</h2>
+<pre><code class=language-bash>$ exec {filew}&gt;output_file
+</code></pre>
+<p>命名文件描述符是 bash 4.1 的一个特性。 命名文件描述符看起来像 <code>{varname}</code>。 您可以像使用常规的数字文件描述符一样使用它们。 Bash 在内部选择一个空闲的文件描述符并为其分配一个名称。</p>
+<h2 id=20_重定向顺序>20_重定向顺序</h2>
+<p>可以把重定向放在你想要的任何地方。看看这3个例子，它们都是一样的：</p>
+<pre><code class=language-bash>$ echo hello &gt;/tmp/example
 
 $ echo &gt;/tmp/example hello
 
 $ &gt;/tmp/example echo hello
-</code></pre><h2 id=21_交换stdout和stderr>21_交换stdout和stderr</h2><pre><code class=language-bash>$ command 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3
-</code></pre><p>这里我们首先复制文件描述符 <code>3</code> 作为 stdout 的副本。 然后我们复制stdout 为stderr 的副本，最后我们复制stderr 为文件描述符<code>3</code> 的副本，即stdout。 因此，我们交换了 stdout 和 stderr。</p><p>让我们通过插图来了解每个重定向。 在运行命令之前，我们有指向终端的文件描述符：</p><p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png></p><p>接下来 bash 设置 <code>3>&1</code> 重定向。 这将创建文件描述符 <code>3</code> 作为文件描述符 <code>1</code> 的副本：</p><p><img class=img-zoomable src=/BashOneLiners/fd3-copy-of-fd1.png alt=fd3-copy-of-fd1.png></p><p>接下来 bash 设置 <code>1>&2</code> 重定向。 这使得文件描述符 <code>1</code> 成为文件描述符 <code>2</code> 的副本：</p><p><img class=img-zoomable src=/BashOneLiners/fd1-copy-of-fd2.png alt=fd1-copy-of-fd2.png></p><p>接下来 bash 设置 <code>2>&3</code> 重定向。 这使得文件描述符 <code>2</code> 成为文件描述符 <code>3</code> 的副本：</p><p><img class=img-zoomable src=/BashOneLiners/fd2-copy-of-fd3.png alt=fd2-copy-of-fd3.png></p><p>如果你是一个追求完美的人，可以将文件描述符3关闭：</p><pre><code class=language-bash>$ command 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-
-</code></pre><p>最终的文件描述符图会是这样的：</p><p><img class=img-zoomable src=/BashOneLiners/fd1-fd2-swap.png alt=fd1-fd2-swap.png></p><h2 id=22_将-stdout-发送到一个进程并将-stderr-发送到另一个进程>22_将 stdout 发送到一个进程并将 stderr 发送到另一个进程</h2><pre><code class=language-bash>$ command &gt; &gt;(stdout_cmd) 2&gt; &gt;(stderr_cmd)
-</code></pre><p>这一行命令用到了进程替换（Process Substitution）语法。<code>>(...)</code>操作符的执行过程是，运行里面的命令，同时将命令的标准输入连接到一个命名管道的读取部分。Bash 随后会用命名管道的实际文件名替换这个操作符。</p><p>例如，第一个替换 <code>>(stdout_cmd)</code> 可能返回 <code>/dev/fd/60</code>，第二个替换可能返回 <code>/dev/fd/61</code>。 这两个文件都是 bash 即时创建的命名管道。 两个命名管道都有作为读取器的命令。 命令等待某人写入管道，以便他们可以读取数据。</p><p>替换后，最初的命令变成以下形式：</p><pre><code class=language-bash>$ command &gt; /dev/fd/60 2&gt; /dev/fd/61
-</code></pre><p>以上，标准输出被重定向到 <code>/dev/fd/60</code>，标准错误被重定向到 <code>/dev/fd/61</code>。</p><p>当命令执行是输出内容到 stdout，则管道<code>/dev/fd/60</code>后面的进程（stdout_cmd）会从另外一侧读取到数据。同样的，进程 stderr_cmd 也能从命令的 stderr 输出中读取。</p><h2 id=23_查找所有管道命令的退出代码>23_查找所有管道命令的退出代码</h2><p>假设您运行了几个通过管道连接在一起的命令：</p><pre><code class=language-bash>$ cmd1 | cmd2 | cmd3 | cmd4
-</code></pre><p>然后你想获取所有命令的退出码，但是这里并没有一种简单的做法可以实现，因为 Bash 只会返回最后一个命令的退出码。</p><p>Bash 开发人员考虑到了这一点，他们添加了一个特殊的 <code>PIPESTATUS</code> 数组，用于保存管道流中所有命令的退出代码。</p><p><code>PIPESTATUS</code> 数组的元素对应于命令的退出代码。 下面是一个例子：</p><pre><code class=language-bash>$ echo 'pants are cool' | grep 'moo' | sed 's/o/x/' | awk '{ print $1 }'
+</code></pre>
+<h2 id=21_交换stdout和stderr>21_交换stdout和stderr</h2>
+<pre><code class=language-bash>$ command 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3
+</code></pre>
+<p>这里我们首先复制文件描述符 <code>3</code> 作为 stdout 的副本。 然后我们复制stdout 为stderr 的副本，最后我们复制stderr 为文件描述符<code>3</code> 的副本，即stdout。 因此，我们交换了 stdout 和 stderr。</p>
+<p>让我们通过插图来了解每个重定向。 在运行命令之前，我们有指向终端的文件描述符：</p>
+<p><img class=img-zoomable src=/BashOneLiners/1.png alt=1.png>
+</p>
+<p>接下来 bash 设置 <code>3>&1</code> 重定向。 这将创建文件描述符 <code>3</code> 作为文件描述符 <code>1</code> 的副本：</p>
+<p><img class=img-zoomable src=/BashOneLiners/fd3-copy-of-fd1.png alt=fd3-copy-of-fd1.png>
+</p>
+<p>接下来 bash 设置 <code>1>&2</code> 重定向。 这使得文件描述符 <code>1</code> 成为文件描述符 <code>2</code> 的副本：</p>
+<p><img class=img-zoomable src=/BashOneLiners/fd1-copy-of-fd2.png alt=fd1-copy-of-fd2.png>
+</p>
+<p>接下来 bash 设置 <code>2>&3</code> 重定向。 这使得文件描述符 <code>2</code> 成为文件描述符 <code>3</code> 的副本：</p>
+<p><img class=img-zoomable src=/BashOneLiners/fd2-copy-of-fd3.png alt=fd2-copy-of-fd3.png>
+</p>
+<p>如果你是一个追求完美的人，可以将文件描述符3关闭：</p>
+<pre><code class=language-bash>$ command 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-
+</code></pre>
+<p>最终的文件描述符图会是这样的：</p>
+<p><img class=img-zoomable src=/BashOneLiners/fd1-fd2-swap.png alt=fd1-fd2-swap.png>
+</p>
+<h2 id=22_将-stdout-发送到一个进程并将-stderr-发送到另一个进程>22_将 stdout 发送到一个进程并将 stderr 发送到另一个进程</h2>
+<pre><code class=language-bash>$ command &gt; &gt;(stdout_cmd) 2&gt; &gt;(stderr_cmd)
+</code></pre>
+<p>这一行命令用到了进程替换（Process Substitution）语法。<code>>(...)</code>操作符的执行过程是，运行里面的命令，同时将命令的标准输入连接到一个命名管道的读取部分。Bash 随后会用命名管道的实际文件名替换这个操作符。</p>
+<p>例如，第一个替换 <code>>(stdout_cmd)</code> 可能返回 <code>/dev/fd/60</code>，第二个替换可能返回 <code>/dev/fd/61</code>。 这两个文件都是 bash 即时创建的命名管道。 两个命名管道都有作为读取器的命令。 命令等待某人写入管道，以便他们可以读取数据。</p>
+<p>替换后，最初的命令变成以下形式：</p>
+<pre><code class=language-bash>$ command &gt; /dev/fd/60 2&gt; /dev/fd/61
+</code></pre>
+<p>以上，标准输出被重定向到 <code>/dev/fd/60</code>，标准错误被重定向到 <code>/dev/fd/61</code>。</p>
+<p>当命令执行是输出内容到 stdout，则管道<code>/dev/fd/60</code>后面的进程（stdout_cmd）会从另外一侧读取到数据。同样的，进程 stderr_cmd 也能从命令的 stderr 输出中读取。</p>
+<h2 id=23_查找所有管道命令的退出代码>23_查找所有管道命令的退出代码</h2>
+<p>假设您运行了几个通过管道连接在一起的命令：</p>
+<pre><code class=language-bash>$ cmd1 | cmd2 | cmd3 | cmd4
+</code></pre>
+<p>然后你想获取所有命令的退出码，但是这里并没有一种简单的做法可以实现，因为 Bash 只会返回最后一个命令的退出码。</p>
+<p>Bash 开发人员考虑到了这一点，他们添加了一个特殊的 <code>PIPESTATUS</code> 数组，用于保存管道流中所有命令的退出代码。</p>
+<p><code>PIPESTATUS</code> 数组的元素对应于命令的退出代码。 下面是一个例子：</p>
+<pre><code class=language-bash>$ echo 'pants are cool' | grep 'moo' | sed 's/o/x/' | awk '{ print $1 }'
 $ echo ${PIPESTATUS[@]}
 0 1 0 0
-</code></pre></div></article></div><aside class="col-12 col-md-3 float-left sidebar"><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
-<span><a href=/tags/bash/>bash</a></span>
-<span><a href=/tags/dos/>dos</a></span>
-<span><a href=/tags/iproute2/>iproute2</a></span>
-<span><a href=/tags/js/>js</a></span>
-<span><a href=/tags/linux/>linux</a></span>
-<span><a href=/tags/lvm/>lvm</a></span>
-<span><a href=/tags/mysql/>mysql</a></span>
-<span><a href=/tags/nginx/>nginx</a></span>
-<span><a href=/tags/php/>php</a></span>
-<span><a href=/tags/powershell/>powershell</a></span>
-<span><a href=/tags/python/>python</a></span>
-<span><a href=/tags/sed/>sed</a></span>
-<span><a href=/tags/sftp/>sftp</a></span>
-<span><a href=/tags/shell/>shell</a></span>
-<span><a href=/tags/ssh/>ssh</a></span>
-<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#0_概述>0_概述</a></li><li><a href=#1_将命令的标准输出stdout重定向到文件>1_将命令的标准输出stdout重定向到文件</a></li><li><a href=#2_将命令的标准错误stderr重定向到文件>2_将命令的标准错误stderr重定向到文件</a></li><li><a href=#3_将stdout和stderr都重定向到一个文件>3_将stdout和stderr都重定向到一个文件</a></li><li><a href=#4_丢弃命令的-stdout-输出>4_丢弃命令的 stdout 输出</a></li><li><a href=#5_将文件内容重定向到命令的stdin>5_将文件内容重定向到命令的stdin</a></li><li><a href=#6_重定向一堆字符串到命令的-stdin>6_重定向一堆字符串到命令的 stdin</a></li><li><a href=#7_重定向一行文本到命令的-stdin>7_重定向一行文本到命令的 stdin</a></li><li><a href=#8_将所有命令的-stderr-永久重定向到一个文件>8_将所有命令的 stderr 永久重定向到一个文件</a></li><li><a href=#9_使用自定义文件描述符打开文件进行读取>9_使用自定义文件描述符打开文件进行读取</a></li><li><a href=#10_使用自定义文件描述符打开文件进行写入>10_使用自定义文件描述符打开文件进行写入</a></li><li><a href=#11_打开一个文件进行写入和读取>11_打开一个文件进行写入和读取</a></li><li><a href=#12_将多个命令的输出发送到一个文件>12_将多个命令的输出发送到一个文件</a></li><li><a href=#13_通过文件在shell中执行命令>13_通过文件在shell中执行命令</a></li><li><a href=#14_通过bash访问一个网站>14_通过bash访问一个网站</a></li><li><a href=#15_重定向输出时防止覆盖文件内容>15_重定向输出时防止覆盖文件内容</a></li><li><a href=#16_将标准输入重定向到文件并将其打印到标准输出>16_将标准输入重定向到文件并将其打印到标准输出</a></li><li><a href=#17_将一个进程的标准输出发送到另一个进程的标准输入>17_将一个进程的标准输出发送到另一个进程的标准输入</a></li><li><a href=#18_将一个进程的-stdout-和-stderr-发送到另一个进程的-stdin>18_将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</a></li><li><a href=#19_给出文件描述符名称>19_给出文件描述符名称</a></li><li><a href=#20_重定向顺序>20_重定向顺序</a></li><li><a href=#21_交换stdout和stderr>21_交换stdout和stderr</a></li><li><a href=#22_将-stdout-发送到一个进程并将-stderr-发送到另一个进程>22_将 stdout 发送到一个进程并将 stderr 发送到另一个进程</a></li><li><a href=#23_查找所有管道命令的退出代码>23_查找所有管道命令的退出代码</a></li></ul></li></ul></nav></div></aside></div><div class=btn><div class=btn-menu id=btn-menu><i class="iconfont icon-grid-sharp"></i></div><div class=btn-toggle-mode><i class="iconfont icon-contrast-sharp"></i></div><div class=btn-scroll-top><i class="iconfont icon-chevron-up-circle-sharp"></i></div></div><aside class=sidebar-mobile style=display:none><div class=sidebar-wrapper><div class="sidebar-item sidebar-pages"><h3>页面</h3><ul><li><a href=/>Home</a></li><li><a href=/archives/>Archives</a></li><li><a href=/about/>About</a></li><li><a href=/search/>Search</a></li><li><a href=/index.xml>RSS</a></li></ul></div><div class="sidebar-item sidebar-links"><h3>链接</h3><ul><li><a href=https://github.com target=_blank><span>GitHub</span></a></li><li><a href=https://cn.bing.com target=_blank><span>Bing</span></a></li><li><a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a></li></ul></div><div class="sidebar-item sidebar-tags"><h3>标签</h3><div><span><a href=/tags/awk/>awk</a></span>
-<span><a href=/tags/bash/>bash</a></span>
-<span><a href=/tags/dos/>dos</a></span>
-<span><a href=/tags/iproute2/>iproute2</a></span>
-<span><a href=/tags/js/>js</a></span>
-<span><a href=/tags/linux/>linux</a></span>
-<span><a href=/tags/lvm/>lvm</a></span>
-<span><a href=/tags/mysql/>mysql</a></span>
-<span><a href=/tags/nginx/>nginx</a></span>
-<span><a href=/tags/php/>php</a></span>
-<span><a href=/tags/powershell/>powershell</a></span>
-<span><a href=/tags/python/>python</a></span>
-<span><a href=/tags/sed/>sed</a></span>
-<span><a href=/tags/sftp/>sftp</a></span>
-<span><a href=/tags/shell/>shell</a></span>
-<span><a href=/tags/ssh/>ssh</a></span>
-<span><a href=/tags/web/>web</a></span></div></div><div class="sidebar-item sidebar-toc"><h3>目录</h3><nav id=TableOfContents><ul><li><ul><li><a href=#0_概述>0_概述</a></li><li><a href=#1_将命令的标准输出stdout重定向到文件>1_将命令的标准输出stdout重定向到文件</a></li><li><a href=#2_将命令的标准错误stderr重定向到文件>2_将命令的标准错误stderr重定向到文件</a></li><li><a href=#3_将stdout和stderr都重定向到一个文件>3_将stdout和stderr都重定向到一个文件</a></li><li><a href=#4_丢弃命令的-stdout-输出>4_丢弃命令的 stdout 输出</a></li><li><a href=#5_将文件内容重定向到命令的stdin>5_将文件内容重定向到命令的stdin</a></li><li><a href=#6_重定向一堆字符串到命令的-stdin>6_重定向一堆字符串到命令的 stdin</a></li><li><a href=#7_重定向一行文本到命令的-stdin>7_重定向一行文本到命令的 stdin</a></li><li><a href=#8_将所有命令的-stderr-永久重定向到一个文件>8_将所有命令的 stderr 永久重定向到一个文件</a></li><li><a href=#9_使用自定义文件描述符打开文件进行读取>9_使用自定义文件描述符打开文件进行读取</a></li><li><a href=#10_使用自定义文件描述符打开文件进行写入>10_使用自定义文件描述符打开文件进行写入</a></li><li><a href=#11_打开一个文件进行写入和读取>11_打开一个文件进行写入和读取</a></li><li><a href=#12_将多个命令的输出发送到一个文件>12_将多个命令的输出发送到一个文件</a></li><li><a href=#13_通过文件在shell中执行命令>13_通过文件在shell中执行命令</a></li><li><a href=#14_通过bash访问一个网站>14_通过bash访问一个网站</a></li><li><a href=#15_重定向输出时防止覆盖文件内容>15_重定向输出时防止覆盖文件内容</a></li><li><a href=#16_将标准输入重定向到文件并将其打印到标准输出>16_将标准输入重定向到文件并将其打印到标准输出</a></li><li><a href=#17_将一个进程的标准输出发送到另一个进程的标准输入>17_将一个进程的标准输出发送到另一个进程的标准输入</a></li><li><a href=#18_将一个进程的-stdout-和-stderr-发送到另一个进程的-stdin>18_将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</a></li><li><a href=#19_给出文件描述符名称>19_给出文件描述符名称</a></li><li><a href=#20_重定向顺序>20_重定向顺序</a></li><li><a href=#21_交换stdout和stderr>21_交换stdout和stderr</a></li><li><a href=#22_将-stdout-发送到一个进程并将-stderr-发送到另一个进程>22_将 stdout 发送到一个进程并将 stderr 发送到另一个进程</a></li><li><a href=#23_查找所有管道命令的退出代码>23_查找所有管道命令的退出代码</a></li></ul></li></ul></nav></div></div></aside></main><footer><div class="container-lg clearfix"><div class="col-12 footer"><span>&copy; 2020-2021
+</code></pre>
+</div>
+</article>
+</div>
+<aside class="col-12 col-md-3 float-left sidebar">
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3><nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#0_概述>0_概述</a></li>
+<li><a href=#1_将命令的标准输出stdout重定向到文件>1_将命令的标准输出stdout重定向到文件</a></li>
+<li><a href=#2_将命令的标准错误stderr重定向到文件>2_将命令的标准错误stderr重定向到文件</a></li>
+<li><a href=#3_将stdout和stderr都重定向到一个文件>3_将stdout和stderr都重定向到一个文件</a></li>
+<li><a href=#4_丢弃命令的-stdout-输出>4_丢弃命令的 stdout 输出</a></li>
+<li><a href=#5_将文件内容重定向到命令的stdin>5_将文件内容重定向到命令的stdin</a></li>
+<li><a href=#6_重定向一堆字符串到命令的-stdin>6_重定向一堆字符串到命令的 stdin</a></li>
+<li><a href=#7_重定向一行文本到命令的-stdin>7_重定向一行文本到命令的 stdin</a></li>
+<li><a href=#8_将所有命令的-stderr-永久重定向到一个文件>8_将所有命令的 stderr 永久重定向到一个文件</a></li>
+<li><a href=#9_使用自定义文件描述符打开文件进行读取>9_使用自定义文件描述符打开文件进行读取</a></li>
+<li><a href=#10_使用自定义文件描述符打开文件进行写入>10_使用自定义文件描述符打开文件进行写入</a></li>
+<li><a href=#11_打开一个文件进行写入和读取>11_打开一个文件进行写入和读取</a></li>
+<li><a href=#12_将多个命令的输出发送到一个文件>12_将多个命令的输出发送到一个文件</a></li>
+<li><a href=#13_通过文件在shell中执行命令>13_通过文件在shell中执行命令</a></li>
+<li><a href=#14_通过bash访问一个网站>14_通过bash访问一个网站</a></li>
+<li><a href=#15_重定向输出时防止覆盖文件内容>15_重定向输出时防止覆盖文件内容</a></li>
+<li><a href=#16_将标准输入重定向到文件并将其打印到标准输出>16_将标准输入重定向到文件并将其打印到标准输出</a></li>
+<li><a href=#17_将一个进程的标准输出发送到另一个进程的标准输入>17_将一个进程的标准输出发送到另一个进程的标准输入</a></li>
+<li><a href=#18_将一个进程的-stdout-和-stderr-发送到另一个进程的-stdin>18_将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</a></li>
+<li><a href=#19_给出文件描述符名称>19_给出文件描述符名称</a></li>
+<li><a href=#20_重定向顺序>20_重定向顺序</a></li>
+<li><a href=#21_交换stdout和stderr>21_交换stdout和stderr</a></li>
+<li><a href=#22_将-stdout-发送到一个进程并将-stderr-发送到另一个进程>22_将 stdout 发送到一个进程并将 stderr 发送到另一个进程</a></li>
+<li><a href=#23_查找所有管道命令的退出代码>23_查找所有管道命令的退出代码</a></li>
+</ul>
+</li>
+</ul>
+</nav></div>
+</aside>
+</div>
+<div class=btn>
+<div class=btn-menu id=btn-menu>
+<i class="iconfont icon-grid-sharp"></i>
+</div>
+<div class=btn-toggle-mode>
+<i class="iconfont icon-contrast-sharp"></i>
+</div>
+<div class=btn-scroll-top>
+<i class="iconfont icon-chevron-up-circle-sharp"></i>
+</div>
+</div>
+<aside class=sidebar-mobile style=display:none>
+<div class=sidebar-wrapper>
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#0_概述>0_概述</a></li>
+<li><a href=#1_将命令的标准输出stdout重定向到文件>1_将命令的标准输出stdout重定向到文件</a></li>
+<li><a href=#2_将命令的标准错误stderr重定向到文件>2_将命令的标准错误stderr重定向到文件</a></li>
+<li><a href=#3_将stdout和stderr都重定向到一个文件>3_将stdout和stderr都重定向到一个文件</a></li>
+<li><a href=#4_丢弃命令的-stdout-输出>4_丢弃命令的 stdout 输出</a></li>
+<li><a href=#5_将文件内容重定向到命令的stdin>5_将文件内容重定向到命令的stdin</a></li>
+<li><a href=#6_重定向一堆字符串到命令的-stdin>6_重定向一堆字符串到命令的 stdin</a></li>
+<li><a href=#7_重定向一行文本到命令的-stdin>7_重定向一行文本到命令的 stdin</a></li>
+<li><a href=#8_将所有命令的-stderr-永久重定向到一个文件>8_将所有命令的 stderr 永久重定向到一个文件</a></li>
+<li><a href=#9_使用自定义文件描述符打开文件进行读取>9_使用自定义文件描述符打开文件进行读取</a></li>
+<li><a href=#10_使用自定义文件描述符打开文件进行写入>10_使用自定义文件描述符打开文件进行写入</a></li>
+<li><a href=#11_打开一个文件进行写入和读取>11_打开一个文件进行写入和读取</a></li>
+<li><a href=#12_将多个命令的输出发送到一个文件>12_将多个命令的输出发送到一个文件</a></li>
+<li><a href=#13_通过文件在shell中执行命令>13_通过文件在shell中执行命令</a></li>
+<li><a href=#14_通过bash访问一个网站>14_通过bash访问一个网站</a></li>
+<li><a href=#15_重定向输出时防止覆盖文件内容>15_重定向输出时防止覆盖文件内容</a></li>
+<li><a href=#16_将标准输入重定向到文件并将其打印到标准输出>16_将标准输入重定向到文件并将其打印到标准输出</a></li>
+<li><a href=#17_将一个进程的标准输出发送到另一个进程的标准输入>17_将一个进程的标准输出发送到另一个进程的标准输入</a></li>
+<li><a href=#18_将一个进程的-stdout-和-stderr-发送到另一个进程的-stdin>18_将一个进程的 stdout 和 stderr 发送到另一个进程的 stdin</a></li>
+<li><a href=#19_给出文件描述符名称>19_给出文件描述符名称</a></li>
+<li><a href=#20_重定向顺序>20_重定向顺序</a></li>
+<li><a href=#21_交换stdout和stderr>21_交换stdout和stderr</a></li>
+<li><a href=#22_将-stdout-发送到一个进程并将-stderr-发送到另一个进程>22_将 stdout 发送到一个进程并将 stderr 发送到另一个进程</a></li>
+<li><a href=#23_查找所有管道命令的退出代码>23_查找所有管道命令的退出代码</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</aside>
+</main>
+<footer>
+<div class="container-lg clearfix">
+<div class="col-12 footer">
+<span>&copy; 2020-2021
 <a href=/>qlel</a>
-| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建</span></div></div></footer><script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script><script defer src=/assets/js/fuji.min.js></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/auto-render.min.js onload=renderMathInElement(document.body)></script></body></html>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建
+</span>
+</div>
+</div>
+</footer>
+<script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script>
+<script defer src=/assets/js/fuji.min.js></script>
+<link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/auto-render.min.js onload=renderMathInElement(document.body)></script>
+</body>
+</html>

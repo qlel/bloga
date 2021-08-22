@@ -1,0 +1,504 @@
+<!doctype html><html lang=zh-hans>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=HandheldFriendly content="True">
+<meta http-equiv=x-ua-compatible content="IE=edge">
+<meta http-equiv=cache-control content="no-transform">
+<meta http-equiv=cache-control content="no-siteapp">
+<meta name=generator content="Hugo 0.87.0">
+<link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>">
+<title>Linux Top命令 - ⚝</title>
+<meta name=author content="qlel">
+<meta name=description content="A minimal Hugo theme with nice theme color.">
+<meta name=keywords content="linux,shell,top">
+<meta property="og:title" content="Linux Top命令">
+<meta name=twitter:title content="Linux Top命令">
+<meta property="og:type" content="article">
+<meta property="og:url" content="/post/linux-top%E5%91%BD%E4%BB%A4/"><meta property="og:description" content="top命令用于Linux系统资源监控。">
+<meta name=twitter:description content="top命令用于Linux系统资源监控。"><meta property="og:image" content="/img/og.png">
+<meta name=twitter:card content="summary_large_image">
+<meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-08-22T17:50:26+08:00"><meta property="article:modified_time" content="2021-08-22T17:50:26+08:00">
+<style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style>
+<link rel=stylesheet href=/assets/css/fuji.min.css>
+</head>
+<body data-theme=auto data-theme-auto=true>
+<script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script>
+<header>
+<div class="container-lg clearfix">
+<div class="col-12 header">
+<a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span>
+</div>
+</div>
+</header>
+<main>
+<div class="container-lg clearfix">
+<div class="col-12 col-md-9 float-left content">
+<article>
+<h2 class="post-item post-title">
+<a href=/post/linux-top%E5%91%BD%E4%BB%A4/>Linux Top命令</a>
+</h2>
+<div class="post-item post-meta">
+<span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-08-22</span>
+<span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;1229 字</span>
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/linux>linux</a>&nbsp;<a href=/tags/shell>shell</a>&nbsp;<a href=/tags/top>top</a>&nbsp;</span>
+</div>
+<div class="post-content markdown-body">
+<p><code>top</code>命令用于Linux系统资源监控。</p>
+<h2 id=top>top</h2>
+<p>直接运行<code>top</code>命令会出现交互式界面，以下图片相关信息：
+<img class=img-zoomable src=/top/top0.png alt=总体>
+<img class=img-zoomable src=/top/top.png alt=动态>
+</p>
+<h2 id=选项>选项</h2>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-h</code>或<code>-v</code></td>
+<td>显示版本和使用提示，然后退出</td>
+</tr>
+<tr>
+<td><code>-b</code></td>
+<td>批量模式，传递输出到其它程序或文件；与<code>-n</code>一起用。</td>
+</tr>
+<tr>
+<td><code>-c</code></td>
+<td>显示命令或程序的完整路径</td>
+</tr>
+<tr>
+<td><code>-d 秒数</code></td>
+<td>指定top命令每隔几秒刷新，默认3s</td>
+</tr>
+<tr>
+<td><code>-E 单位</code></td>
+<td>指定显示存储时使用的单位，有 k, m, g, t, p, e</td>
+</tr>
+<tr>
+<td><code>-H</code></td>
+<td>显示线程(一个进程有多个线程)</td>
+</tr>
+<tr>
+<td><code>-i</code></td>
+<td>切换显示空闲进程</td>
+</tr>
+<tr>
+<td><code>-n 次数</code></td>
+<td>指定刷新几次结束，一般与<code>-b</code>一起用</td>
+</tr>
+<tr>
+<td><code>-o 字段名</code></td>
+<td>指定排序字段，字段前缀 &lsquo;+&rsquo; 表示降序，'-&lsquo;表示升序</td>
+</tr>
+<tr>
+<td><code>-O</code></td>
+<td>列出可选的字段名，<code>-o</code>选项的可选值</td>
+</tr>
+<tr>
+<td><code>-pN1,N2,N3...</code></td>
+<td>只监控特定的PID，N1,N2,N3表示多个PID</td>
+</tr>
+<tr>
+<td><code>-s</code></td>
+<td>安全模式</td>
+</tr>
+<tr>
+<td><code>-U 用户</code>或<code>-u 用户</code></td>
+<td>只显示特定用户</td>
+</tr>
+</tbody>
+</table>
+<h2 id=管理字段>管理字段</h2>
+<p>在交互模式下，按<code>f</code>或<code>F</code>进入字段管理窗口：</p>
+<pre><code class=language-bash>Fields Management for window 1:Def, whose current sort field is %CPU
+   Navigate with Up/Dn, Right selects for move then &lt;Enter&gt; or Left commits,
+   'd' or &lt;Space&gt; toggles display, 's' sets sort.  Use 'q' or &lt;Esc&gt; to end!
+
+* PID     = Process Id             TIME    = CPU Time               RSan    = RES Anonymous (KiB)
+* USER    = Effective User Name    SWAP    = Swapped Size (KiB)     RSfd    = RES File-based (KiB)
+* PR      = Priority               CODE    = Code Size (KiB)        RSlk    = RES Locked (KiB)
+* NI      = Nice Value             DATA    = Data+Stack (KiB)       RSsh    = RES Shared (KiB)
+* VIRT    = Virtual Image (KiB)    nMaj    = Major Page Faults      CGNAME  = Control Group name
+* RES     = Resident Size (KiB)    nMin    = Minor Page Faults      NU      = Last Used NUMA node
+* SHR     = Shared Memory (KiB)    nDRT    = Dirty Pages Count
+* S       = Process Status         WCHAN   = Sleeping in Function
+* %CPU    = CPU Usage              Flags   = Task Flags &lt;sched.h&gt;
+* %MEM    = Memory Usage (RES)     CGROUPS = Control Groups
+* TIME+   = CPU Time, hundredths   SUPGIDS = Supp Groups IDs
+* COMMAND = Command Name/Line      SUPGRPS = Supp Groups Names
+  PPID    = Parent Process pid     TGID    = Thread Group Id
+  UID     = Effective User Id      OOMa    = OOMEM Adjustment
+  RUID    = Real User Id           OOMs    = OOMEM Score current
+  RUSER   = Real User Name         ENVIRON = Environment vars
+  SUID    = Saved User Id          vMj     = Major Faults delta
+  SUSER   = Saved User Name        vMn     = Minor Faults delta
+  GID     = Group Id               USED    = Res+Swap Size (KiB)
+  GROUP   = Group Name             nsIPC   = IPC namespace Inode
+  PGRP    = Process Group Id       nsMNT   = MNT namespace Inode
+  TTY     = Controlling Tty        nsNET   = NET namespace Inode
+  TPGID   = Tty Process Grp Id     nsPID   = PID namespace Inode
+  SID     = Session Id             nsUSER  = USER namespace Inode
+  nTH     = Number of Threads      nsUTS   = UTS namespace Inode
+  P       = Last Used Cpu (SMP)    LXC     = LXC container name
+</code></pre>
+<p>显示说明：</p>
+<ul>
+<li>“当前”窗口名；</li>
+<li>指定的排序字段；</li>
+<li>按当前顺序排列的所有字段以及说明。如果屏幕宽度允许，标有星号的条目是当前显示的字段。</li>
+<li><kbd>↑</kbd>与<kbd>↓</kbd>进行移动</li>
+<li><kbd>→</kbd>选择要重新定位的字段</li>
+<li><kbd>←</kbd>或<kbd>Enter</kbd>提交该字段的位置</li>
+<li><kbd>d</kbd>或<kbd>Space</kbd>切换字段的显示状态，有<code>*</code>表示显示</li>
+<li><kbd>s</kbd>指定一个字段作为排序字段</li>
+<li><kbd>a</kbd>和<kbd>w</kbd>用于在被选择字段中循环移动</li>
+<li><kbd>q</kbd>和<kbd>Esc</kbd>退出字段管理窗口</li>
+</ul>
+<h2 id=交互指令>交互指令</h2>
+<p>以下指令可能重复，因为在特定的上下文中有不同的效果。</p>
+<blockquote>
+<p>注意： 字母大小写区分。</p>
+</blockquote>
+<h3 id=全局指令>全局指令</h3>
+<ul>
+<li><kbd>Enter</kbd>或<kbd>Space</kbd>: 刷新显示</li>
+<li><kbd>?</kbd>或<kbd>h</kbd>: 帮助信息</li>
+<li><kbd>0</kbd>: 切换是否显示0</li>
+<li><kbd>A</kbd>: 多行显示所有字段</li>
+<li><kbd>d</kbd>或<kbd>s</kbd>: 输入刷新秒数，默认3s</li>
+<li><kbd>E</kbd>: 切换上方信息的存储单位</li>
+<li><kbd>e</kbd>: 切换下方信息的存储单位</li>
+<li><kbd>e</kbd>: 切换下方信息的存储单位</li>
+<li><kbd>g</kbd>: 切换显示组，有默认4个组</li>
+<li><kbd>H</kbd>: 切换显示线程模式</li>
+<li><kbd>k</kbd>: 会提示输入要杀死的PID</li>
+<li><kbd>q</kbd>: 退出</li>
+<li><kbd>W</kbd>: 保存状态至下一次启动还原</li>
+<li><kbd>X</kbd>: 设置字段宽度</li>
+<li><kbd>Z</kbd>: 打开设置颜色窗口</li>
+</ul>
+<h3 id=摘要视图>摘要视图</h3>
+<ul>
+<li><kbd>C</kbd>: 显示滚动坐标切换</li>
+<li><kbd>1</kbd>: CPU平均负载/正常运行时间切换</li>
+<li><kbd>t</kbd>: CPU状态切换</li>
+<li><kbd>m</kbd>: 内存状态切换</li>
+</ul>
+<h3 id=任务视图>任务视图</h3>
+<p>外观：</p>
+<ul>
+<li><kbd>j</kbd>和<kbd>J</kbd>: 对齐方式的切换</li>
+<li><kbd>b</kbd>: 前景色和背景色的切换</li>
+<li><kbd>x</kbd>: 突出显示排序列</li>
+<li><kbd>y</kbd>: 突出显示行</li>
+<li><kbd>z</kbd>: 切换上次使用的颜色</li>
+</ul>
+<p>内容：</p>
+<ul>
+<li><kbd>c</kbd>: 切换完整路径命令</li>
+<li><kbd>S</kbd>: 累积时间模式切换</li>
+<li><kbd>u</kbd>和<kbd>U</kbd>: 显示特定用户</li>
+<li><kbd>V</kbd>: 树结构切换</li>
+</ul>
+<p>窗口任务数量：</p>
+<ul>
+<li><kbd>i</kbd>: 空闲状态进程切换</li>
+<li><kbd>n</kbd>和<kbd>#</kbd>: 输入窗口显示任务数量</li>
+</ul>
+<p>排序：
+<kbd>P</kbd>：以CPU使用率排序，默认就是此项
+<kbd>M</kbd>：以内存使用率排序
+<kbd>N</kbd>：以PID排序
+<kbd>R</kbd>：在当前基础上反向排序</p>
+</div>
+</article>
+</div>
+<aside class="col-12 col-md-3 float-left sidebar">
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3><nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#top>top</a></li>
+<li><a href=#选项>选项</a></li>
+<li><a href=#管理字段>管理字段</a></li>
+<li><a href=#交互指令>交互指令</a>
+<ul>
+<li><a href=#全局指令>全局指令</a></li>
+<li><a href=#摘要视图>摘要视图</a></li>
+<li><a href=#任务视图>任务视图</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav></div>
+</aside>
+</div>
+<div class=btn>
+<div class=btn-menu id=btn-menu>
+<i class="iconfont icon-grid-sharp"></i>
+</div>
+<div class=btn-toggle-mode>
+<i class="iconfont icon-contrast-sharp"></i>
+</div>
+<div class=btn-scroll-top>
+<i class="iconfont icon-chevron-up-circle-sharp"></i>
+</div>
+</div>
+<aside class=sidebar-mobile style=display:none>
+<div class=sidebar-wrapper>
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#top>top</a></li>
+<li><a href=#选项>选项</a></li>
+<li><a href=#管理字段>管理字段</a></li>
+<li><a href=#交互指令>交互指令</a>
+<ul>
+<li><a href=#全局指令>全局指令</a></li>
+<li><a href=#摘要视图>摘要视图</a></li>
+<li><a href=#任务视图>任务视图</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</aside>
+</main>
+<footer>
+<div class="container-lg clearfix">
+<div class="col-12 footer">
+<span>&copy; 2020-2021
+<a href=/>qlel</a>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建
+</span>
+</div>
+</div>
+</footer>
+<script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script>
+<script defer src=/assets/js/fuji.min.js></script>
+<link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/auto-render.min.js onload=renderMathInElement(document.body)></script>
+</body>
+</html>

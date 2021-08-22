@@ -1,0 +1,695 @@
+<!doctype html><html lang=zh-hans>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=HandheldFriendly content="True">
+<meta http-equiv=x-ua-compatible content="IE=edge">
+<meta http-equiv=cache-control content="no-transform">
+<meta http-equiv=cache-control content="no-siteapp">
+<meta name=generator content="Hugo 0.87.0">
+<link rel=icon href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22cyan%22 stroke=%22ivory%22>⚝</text></svg>">
+<title>Rsync命令 - ⚝</title>
+<meta name=author content="qlel">
+<meta name=description content="A minimal Hugo theme with nice theme color.">
+<meta name=keywords content="shell,rsync">
+<meta property="og:title" content="Rsync命令">
+<meta name=twitter:title content="Rsync命令">
+<meta property="og:type" content="article">
+<meta property="og:url" content="/post/rsync%E5%91%BD%E4%BB%A4/"><meta property="og:description" content="rsync是可以实现增量备份的工具。配合任务计划，rsync能实现定时或间隔同步，配合inotify或sersync，可以实现触发式的实时同步。">
+<meta name=twitter:description content="rsync是可以实现增量备份的工具。配合任务计划，rsync能实现定时或间隔同步，配合inotify或sersync，可以实现触发式的实时同步。"><meta property="og:image" content="/img/og.png">
+<meta name=twitter:card content="summary_large_image">
+<meta name=twitter:image content="/img/og.png"><meta property="article:published_time" content="2021-08-22T17:54:53+08:00"><meta property="article:modified_time" content="2021-08-22T17:54:53+08:00">
+<style>@media(prefers-color-scheme:dark){body[data-theme=auto] img{filter:brightness(60%)}}body[data-theme=dark] img{filter:brightness(60%)}</style>
+<link rel=stylesheet href=/assets/css/fuji.min.css>
+</head>
+<body data-theme=auto data-theme-auto=true>
+<script data-cfasync=false>var fujiThemeData=localStorage.getItem('fuji_data-theme');fujiThemeData?fujiThemeData!=='auto'&&document.body.setAttribute('data-theme',fujiThemeData==='dark'?'dark':'light'):localStorage.setItem('fuji_data-theme','auto')</script>
+<header>
+<div class="container-lg clearfix">
+<div class="col-12 header">
+<a class=title-main href=/>⚝</a>
+<span class=title-sub>时间总是不够，流逝得太快了！</span>
+</div>
+</div>
+</header>
+<main>
+<div class="container-lg clearfix">
+<div class="col-12 col-md-9 float-left content">
+<article>
+<h2 class="post-item post-title">
+<a href=/post/rsync%E5%91%BD%E4%BB%A4/>Rsync命令</a>
+</h2>
+<div class="post-item post-meta">
+<span><i class="iconfont icon-today-sharp"></i>&nbsp;2021-08-22</span>
+<span><i class="iconfont icon-file-tray-sharp"></i>&nbsp;6466 字</span>
+<span><i class="iconfont icon-pricetags-sharp"></i>&nbsp;<a href=/tags/shell>shell</a>&nbsp;<a href=/tags/rsync>rsync</a>&nbsp;</span>
+</div>
+<div class="post-content markdown-body">
+<p><code>rsync</code>是可以实现增量备份的工具。配合任务计划，<code>rsync</code>能实现定时或间隔同步，配合<code>inotify</code>或<code>sersync</code>，可以实现触发式的实时同步。</p>
+<p><code>rsync</code>可以实现scp的远程拷贝(<code>rsync</code>不支持远程到远程的拷贝，但scp支持)、cp的本地拷贝、rm删除和"<code>ls -l</code>&ldquo;显示文件列表等功能。但需要注意的是，<code>rsync</code>的最终目的或者说其原始目的是实现两端主机的文件同步，因此实现的<code>scp/cp/rm</code>等功能仅仅只是同步的辅助手段，且<code>rsync</code>实现这些功能的方式和这些命令是不一样的。事实上，<code>rsync</code>有一套自己的算法，其算法原理以及<code>rsync</code>对算法实现的机制可能比想象中要复杂一些。</p>
+<h2 id=rsync同步基本说明>rsync同步基本说明</h2>
+<p><code>rsync</code>的目的是实现本地主机和远程主机上的文件同步(包括本地推到远程，远程拉取到本地两种同步方式)，也可以实现本地不同路径下文件的同步，但不能实现远程路径1到远程路径2之间的同步(scp可以实现)。</p>
+<p><code>rsync</code>的文件同步涉及了 <strong>源文件</strong> 和 <strong>目标文件</strong> 的概念，还涉及了以哪边文件为 <strong>同步基准</strong> 。例如:</p>
+<ul>
+<li>想让目标主机上的文件和本地文件保持同步，则是以本地文件为同步基准，将本地文件作为源文件推送到目标主机上。</li>
+<li>反之，如果想让本地主机上的文件和目标主机上的文件保持同步，则目标主机上的文件为同步基准，实现方式是将目标主机上的文件作为源文件拉取到本地。</li>
+<li>当然，要保持本地的两个文件相互同步，<code>rsync</code>也一样能实现，这就像Linux中<code>cp</code>命令一样，以本地某文件作为源，另一文件作为目标文件，但请注意，虽然<code>rsync</code>和<code>cp</code>能达到相同的目的，但它们的实现方式是不一样的。</li>
+<li>&mldr;</li>
+</ul>
+<p>既然是文件同步，在同步过程中必然会涉及到 <strong>源和目标两文件之间版本控制</strong> 的问题，例如:</p>
+<ul>
+<li>是否要删除源主机上没有但目标上多出来的文件</li>
+<li>目标文件比源文件更新时是否仍要保持同步</li>
+<li>遇到软链接时是拷贝软链接本身还是拷贝软链接所指向的文件</li>
+<li>目标文件已存在时是否要先对其做个备份等等</li>
+<li>&mldr;</li>
+</ul>
+<p><code>rsync</code>同步过程中由两部分模式组成:</p>
+<ul>
+<li>决定哪些文件需要同步的 <strong>检查模式</strong>
+<ul>
+<li>检查模式是指按照指定规则来检查哪些文件需要被同步，例如哪些文件是明确被排除不传输的。 <strong>默认情况下，<code>rsync</code>使用"quick check"算法快速检查源文件和目标文件的大小、mtime(修改时间)是否一致，如果不一致则需要传输。</strong> 当然，也可以通过在<code>rsync</code>命令行中指定某些选项来改变"quick check"的检查模式，比如&rdquo;<code>--size-only</code>&ldquo;选项表示"quick check"将仅检查文件大小不同的文件作为待传输文件。<code>rsync</code>支持非常多的选项，其中检查模式的自定义性是非常有弹性的。</li>
+</ul>
+</li>
+<li>文件同步时的 <strong>同步模式</strong>
+<ul>
+<li>同步模式是指在文件确定要被同步后，在同步过程发生之前要做哪些额外工作。例如上文所说的是否要先删除源主机上没有但目标主机上有的文件，是否要先备份已存在的目标文件，是否要追踪链接文件等额外操作。rsync也提供非常多的选项使得同步模式变得更具弹性。</li>
+</ul>
+</li>
+</ul>
+<p>相对来说，为rsync手动指定同步模式的选项更常见一些，只有在有特殊需求时才指定检查模式，因为大多数检查模式选项都可能会影响rsync的性能。</p>
+<h2 id=rsync三种工作方式>rsync三种工作方式</h2>
+<p>以下是rsync的语法：</p>
+<pre><code class=language-bash>Local:
+    rsync [OPTION...] SRC... [DEST]
+
+Access via remote shell:
+    Pull:
+        rsync [OPTION...] [USER@]HOST:SRC... [DEST]
+    Push:
+        rsync [OPTION...] SRC... [USER@]HOST:DEST
+
+Access via rsync daemon:
+    Pull:
+        rsync [OPTION...] [USER@]HOST::SRC... [DEST]
+        rsync [OPTION...] rsync://[USER@]HOST[:PORT]/SRC... [DEST]
+    Push:
+        rsync [OPTION...] SRC... [USER@]HOST::DEST
+        rsync [OPTION...] SRC... rsync://[USER@]HOST[:PORT]/DEST)
+</code></pre>
+<p>由此语法可知，rsync有三种工作方式：</p>
+<ol>
+<li>本地文件系统上实现同步。</li>
+<li>本地主机与远程主机通信。</li>
+<li>本地主机通过TCP连接远程主机上的<code>rsync</code>守护进程</li>
+</ol>
+<p>还有第四种工作方式：通过远程shell也能临时启动一个rsync daemon，这不同于方式(3)，它不要求远程主机上事先启动rsync服务，而是临时派生出rsync daemon，它是单用途的一次性daemon，仅用于临时读取daemon的配置文件，当此次rsync同步完成，远程shell启动的rsync daemon进程也会自动消逝。此通信方式的命令行语法格式同"Access via rsync daemon&rdquo;，但要求options部分必须明确指定"<code>--rsh</code>&ldquo;选项或其短选项&rdquo;<code>-e</code>"。</p>
+<blockquote>
+<p>特殊情况：如果指定了源SRC，而没有指定目标DEST，会以类似命令<code>ls -l</code>的形式列出源SRC的文件。</p>
+</blockquote>
+<p>Rsync将本地端称为客户端，将远程端称为服务器。不要将服务器与rsync守护进程混淆。守护进程始终是服务器，但服务器可以是守护进程，也可以是远程shell派生的进程。</p>
+<blockquote>
+<p>注意：源路径如果是一个目录的话，带上尾随斜线和不带尾随斜线是不一样的，不带尾随斜线表示的是整个目录包括目录本身，带上尾随斜线表示的是目录中的文件，不包括目录本身。</p>
+</blockquote>
+<h2 id=常用选项>常用选项</h2>
+<pre><code class=language-bash>-v：显示rsync过程中详细信息。可以使用&quot;-vvvv&quot;获取更详细信息。
+--partial：默认情况下，如果传输中断，rsync将删除任何部分传输的文件。
+           在某些情况下，更希望保留部分传输的文件。使用--partial选项告诉rsync保留部分文件，这将使文件其余部分的后续传输更快。
+--progress：显示进度条
+-P：显示文件传输的进度信息。(实际上&quot;-P&quot;=&quot;--partial --progress&quot;，其中的&quot;--progress&quot;才是显示进度信息的)。
+-n --dry-run  ：仅测试传输，而不实际传输。常和&quot;-vvvv&quot;配合使用来查看rsync是如何工作的。
+-a --archive  ：归档模式，表示递归传输并保持文件属性。等同于&quot;-rtopgDl&quot;。
+-r --recursive：递归到目录中去。
+-t --times：保持mtime属性。强烈建议任何时候都加上&quot;-t&quot;，否则目标文件mtime会设置为系统时间，导致下次更新
+          ：检查出mtime不同从而导致增量传输无效。
+-o --owner：保持owner属性(属主)。
+-g --group：保持group属性(属组)。
+-p --perms：保持perms属性(权限，不包括特殊权限)。
+-D        ：是&quot;--device --specials&quot;选项的组合，即也拷贝设备文件和特殊文件。
+-l --links：如果文件是软链接文件，则拷贝软链接本身而非软链接所指向的对象。
+-z        ：传输时进行压缩提高效率。
+-R --relative：使用相对路径。意味着将命令行中指定的全路径而非路径最尾部的文件名发送给服务端，包括它们的属性。用法见下文示例。
+--size-only ：默认算法是检查文件大小和mtime不同的文件，使用此选项将只检查文件大小。
+-u --update ：仅在源mtime比目标已存在文件的mtime新时才拷贝。注意，该选项是接收端判断的，不会影响删除行为。
+-d --dirs   ：以不递归的方式拷贝目录本身。默认递归时，如果源为&quot;dir1/file1&quot;，则不会拷贝dir1目录，使用该选项将拷贝dir1但不拷贝file1。
+--max-size  ：限制rsync传输的最大文件大小。可以使用单位后缀，还可以是一个小数值(例如：&quot;--max-size=1.5m&quot;)
+--min-size  ：限制rsync传输的最小文件大小。这可以用于禁止传输小文件或那些垃圾文件。
+--exclude   ：指定排除规则来排除不需要传输的文件。
+--delete    ：以SRC为主，对DEST进行同步。多则删之，少则补之。注意&quot;--delete&quot;是在接收端执行的，所以它是在
+            ：exclude/include规则生效之后才执行的。
+-b --backup ：对目标上已存在的文件做一个备份，备份的文件名后默认使用&quot;~&quot;做后缀。
+--backup-dir：指定备份文件的保存路径。不指定时默认和待备份文件保存在同一目录下。
+-e          ：指定所要使用的远程shell程序，默认为ssh。
+--port      ：连接daemon时使用的端口号，默认为873端口。
+--password-file：daemon模式时的密码文件，可以从中读取密码实现非交互式。注意，这不是远程shell认证的密码，而是rsync模块认证的密码。
+-W --whole-file：rsync将不再使用增量传输，而是全量传输。在网络带宽高于磁盘带宽时，该选项比增量传输更高效。
+--existing  ：要求只更新目标端已存在的文件，目标端还不存在的文件不传输。注意，使用相对路径时如果上层目录不存在也不会传输。
+--ignore-existing：要求只更新目标端不存在的文件。和&quot;--existing&quot;结合使用有特殊功能，见下文示例。
+--remove-source-files：要求删除源端已经成功传输的文件。
+</code></pre>
+<h2 id=本地示例>本地示例</h2>
+<p>只给出源SRC，会类似<code>ls -l</code>形式显示。</p>
+<pre><code class=language-bash>$ rsync .
+drwxrwxrwx          4,096 2021/06/28 11:12:08 .
+-rwxrwxrwx            102 2021/05/27 15:02:23 for_test.bat
+-rwxrwxrwx             52 2021/05/27 14:46:04 test.txt
+-rwxrwxrwx             54 2021/06/28 11:12:41 test1.sh
+
+# 如果源SRC是一个文件或目录(未加反斜杠)，显示其信息
+$ rsync dira
+drwxrwxrwx          4,096 2021/08/18 17:38:55 dira
+
+# 如果目录加了反斜杠，显示其所有内容项的信息
+$ rsync dira/
+drwxrwxrwx          4,096 2021/08/18 17:38:55 .
+-rwxrwxrwx            102 2021/08/18 17:38:55 for_test.bat
+-rwxrwxrwx             52 2021/08/18 17:38:55 test.txt
+-rwxrwxrwx             54 2021/08/18 17:38:55 test1.sh
+</code></pre>
+<p>复制文件，类似<code>cp</code>命令。</p>
+<pre><code class=language-bash># 类似 cp ，复制文件并改名，如果目标地址有同名文件则直接覆盖不提示
+$ rsync for_test.bat for1.txt
+
+# 复制文件到目录，目标地址DEST的目录加不加反斜杠都一样
+rsync for1.txt dird
+rsync for1.txt dird/
+</code></pre>
+<ul>
+<li><code>-r</code>或<code>--recursive</code>递归复制。</li>
+<li><code>-a</code>或<code>--archive</code>递归传输并保持文件属性。</li>
+</ul>
+<blockquote>
+<p>复制目录时一定要加上<code>-r</code>或<code>-a</code></p>
+</blockquote>
+<pre><code class=language-bash># 将目录dira复制到目录dirb
+$ rsync -r dira dirb
+
+# 将目录dira的所有内容项复制到目录dirb，但是不包括目录dira本身
+$ rsync -r dira/ dirb
+
+# 保持文件属性的递归复制
+$ rsync -a dira dirb
+$ rsync -a dira/ dirb
+</code></pre>
+<p>以源SRC为基准，增量同步两个本地目录时，使用<code>-t</code>和<code>-a</code>选项保持文件修改时间和属性，以便下次同步时触发增量同步的条件。</p>
+<pre><code class=language-bash># 增量同步目录dira和darc，并保持属性和修改时间，
+$ rsync -t -a dira/ dirc
+</code></pre>
+<p>默认情况下，<code>rsync</code> 只确保源目录的所有内容（明确排除的文件除外）都复制到目标目录。它不会使两个目录保持相同，并且不会删除文件。如果要使得目标目录成为源目录的镜像副本，则必须使用<code>--delete</code>参数，这将删除只存在于目标目录、而不存在于源目录的文件。</p>
+<pre><code class=language-bash># --delete 参数会使得目标DEST成为源SRC的一个镜像。
+$ rsync -t -a --delete dira/ dirb
+</code></pre>
+<p>多个源SRC，最后一个目录是目标DEST。</p>
+<pre><code class=language-bash># 将源SRC的 dira 、dirc 目录连同文件一起同步到目标DEST的 dirb 目录
+$ rsync -av dira dirc dirb
+</code></pre>
+<h2 id=排除和包含规则>排除和包含规则</h2>
+<ul>
+<li><code>--exclude=PATTERN</code>: 指定排除规则来排除不需要传输的文件。可以多次使用。</li>
+<li><code>--exclude-from=FILE</code>: 从文件中指定排除规则来排除不需要传输的文件。</li>
+<li><code>--include=PATTERN</code>: 指定包含规则来包含必须传输的文件。可以多次使用。</li>
+<li><code>--include-from=FILE</code>: 从文件中指定包含规则来包含必须传输的文件。</li>
+</ul>
+<p>递归排除所有<code>.txt</code>结尾的文件，这也包括子目录以<code>.txt</code>结尾的文件。</p>
+<pre><code class=language-bash>$ rsync -v -a --exclude='*.txt' dira/ dirb
+</code></pre>
+<p>如果只排除dira目录以<code>.txt</code>结尾的文件，可以加<code>/</code>表示源SRC的根(root)目录。<code>rsync</code>以源SRC为基准作为根目录。</p>
+<pre><code class=language-bash>$ rsync -v -a --exclude='/*.txt' dira/ dirb
+</code></pre>
+<blockquote>
+<p>注意，<code>rsync</code> 会同步以"点"开头的隐藏文件，如果要排除隐藏文件，可以这样写<code>--exclude=".*"</code></p>
+</blockquote>
+<p>多个排除规则，可以使用多个<code>--exclude</code>，也可以使用大括号<code>{}</code>。</p>
+<pre><code class=language-bash>$ rsync -v -a --exclude='/*.txt' --exclude='/*.sh' dira/ dirb
+
+# 等同于
+$ rsync -v -a --exclude={'/*.txt','/*.sh'} dira/ dirb
+</code></pre>
+<p>如果<code>--exclude</code>和<code>--delete</code>选项一起使用，则被排除的文件不会被删除。</p>
+<pre><code class=language-bash>$ rsync -v -a --exclude='/*.txt' --exclude='/*.sh' --delete dira/ dirb
+</code></pre>
+<p>如果排除模式很多，可以将它们写入一个文件，每个模式一行，然后用<code>--exclude-from</code>参数指定这个文件。</p>
+<pre><code class=language-bash>$ cat rules.txt
+/*.txt
+/*.bat
+
+$ rsync -v -a --exclude-from='rules.txt' dira/ dirb
+</code></pre>
+<h2 id=远程同步>远程同步</h2>
+<p>远程同步有2种方式：</p>
+<ul>
+<li>使用 ssh</li>
+<li>使用 rsync 守护进程</li>
+</ul>
+<p>本地端和远程端必须安装 rsync 。</p>
+<p>centos 安装相关软件：</p>
+<pre><code class=language-bash>yum install openssh-clients openssh-server rsync
+</code></pre>
+<h3 id=ssh>ssh</h3>
+<p>与使用<code>scp</code>命令的语法结构一致。</p>
+<pre><code class=language-bash># 本地同步到远程
+rsync -avt 本地源   远程用户名@远程地址:远程目的地址
+
+# 远程同步到本地
+rsync -avt 远程用户名@远程地址:远程源   本地目的地址
+</code></pre>
+<p>示例：</p>
+<pre><code class=language-bash># 将本地 dira 目录同步到远程的 /root目录
+rsync -avt dira root@172.17.0.2:/root
+
+# 将远程的 /root/dira/ 的内容同步到本地相对路径的 dira 目录
+rsync -avt root@172.17.0.2:/root/dira/ dira
+</code></pre>
+<p>rsync 默认使用 SSH 进行远程登录和数据传输。</p>
+<p>由于早期 rsync 不使用 SSH 协议，需要用<code>-e</code>参数指定协议，后来策略改变了。所以上面的<code>-e ssh</code>可以省略。</p>
+<pre><code class=language-bash>rsync -av -e ssh SRC/ user@remote_host:/DEST
+</code></pre>
+<p>但是，如果 ssh 命令有附加的参数，则必须使用<code>-e</code>参数指定所要执行的 SSH 命令。</p>
+<pre><code class=language-bash>rsync -av -e 'ssh -p 2234' SRC/ user@remote_host:/DEST
+</code></pre>
+<h3 id=rsync-daemon>rsync daemon</h3>
+<p>rsync daemon 需要在一台主机上使用<code>rsync --daemon</code>读取配置文件启动rsync的守护进程。默认读取的配置文件为<code>/etc/rsyncd.conf</code>，有些版本的系统上可能该文件默认不存在，可以自己创建。</p>
+<p>或者也可以使用systemd启动：</p>
+<pre><code class=language-bash>systemctl start rsyncd
+</code></pre>
+<p>配置文件<code>/etc/rsyncd.conf</code>的常见选项：</p>
+<pre><code class=language-ini>######### 全局配置参数 ##########
+
+# 指定rsync端口。默认873
+port = 873    
+# 指定rsync daemon 的pid文件
+pid file = /var/run/rsyncd.pid
+# 指定在每次连接时向客户端显示信息，如站点信息或法律文件信息
+motd file = /etc/rsyncd/rsyncd.motd
+# 指定监听的IP，会覆盖默认的IP
+address = 192.168.2.2 
+
+######### 模块参数，有些模块参数也可用于全局 ###########
+
+# 模块名
+[ftp1]
+# 客户端在获取模块列表时会显示 comment 定义的注释
+comment = 一些关于此模块的描述
+# 模块的根目录，这是必须的，其它选项是可选的
+path = /data/ftp1
+# 如果为true，则会将 path 定义的地址作为根目录，隔绝一些危险隐患，需要root权限
+use chroot = true
+# 最大同时连接数。默认0表示无限制
+max connections = 0
+# 用于支持 max connections 参数的文件。
+# rsync守护进程对此文件使用记录锁定，以确保共享锁定文件的模块不会超过最大连接限制。
+# 默认值为/var/run/rsyncd.lock。
+lock file = 
+# 日志文件
+log file = /var/log/rsyncd.log
+# 如果为true，客户端只能下载，不能上传文件。默认 true
+read only = false
+# 如果为true，客户端只能上传，不能下载文件。默认 false
+write only = false
+# 客户端请求显示模块列表时，是否显示出来，false表示该模块为隐藏模块。默认true
+list = true
+# rsync服务的运行用户和用户组，默认是nobody，文件传输成功后属主将是这个uid和gid
+uid = nobody
+gid = nobody
+# 排除选项，以空格分隔的列表
+exclude = test1/ test2/
+# 指定连接到该模块的用户列表，只有列表里的用户才能连接到模块，用户名和对应密码保存在secrts file中
+# 这里使用的不是系统用户，而是虚拟用户。不设置时，默认所有用户都能连接，但使用的是匿名连接
+auth users = rsync_backup
+# 保存auth users用户列表的用户名和密码，每行包含一个username:passwd。
+secrets file = /etc/rsyncd.secrets
+# 指定允许连接到该模块的机器，多个ip用空格隔开
+hosts allow = 10.0.0.0/24
+# 指定不允许连接到该模块的机器，多个ip用空格隔开
+hosts deny = 0.0.0.0/32
+# 是否忽略执行--delete选项时的io错误
+ignore errors
+# 是否忽略不可读取的文件
+ignore nonreadable
+# 是否记录传输文件日志
+transfer logging
+# 超时设置，单位秒。默认0表示表示无限，匿名用户最好设置600，也就是10分钟
+timeout = 600
+# 指定哪些文件不用进行压缩传输
+dont compress = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
+</code></pre>
+<h4 id=使用步骤示例>使用步骤示例</h4>
+<ol>
+<li>创建配置文件<code>/etc/rsyncd.conf</code>:</li>
+</ol>
+<pre><code class=language-ini>port = 888
+pid file = /var/run/rsyncd.pid
+
+[testa]
+path = /root/dirb
+comment = 测试testa
+log file = /var/log/rsyncd.log
+read only = false
+list = true
+ignore errors
+ignore nonreadable
+transfer logging
+timeout = 600
+dont compress = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
+</code></pre>
+<ol start=2>
+<li>启动</li>
+</ol>
+<pre><code class=language-bash>rsync --daemon
+</code></pre>
+<ol start=3>
+<li>到客户端主机传输文件</li>
+</ol>
+<p>语法：</p>
+<pre><code class=language-bash>Access via rsync daemon:
+    Pull:
+        rsync [OPTION...] [USER@]HOST::模块名/SRC... [DEST]
+        rsync [OPTION...] rsync://[USER@]HOST[:PORT]/模块名/SRC... [DEST]
+    Push:
+        rsync [OPTION...] SRC... [USER@]HOST::模块名/DEST
+        rsync [OPTION...] SRC... rsync://[USER@]HOST[:PORT]/模块名/DEST)
+</code></pre>
+<p>示例：此处会出现一些错误，见下面</p>
+<pre><code class=language-bash># 本地到远程
+rsync -avt --port=888 /root/dira root@172.17.0.2::testa
+
+# 或者
+rsync -avt dira rsync://root@172.17.0.2:888/testa
+
+# 远程到本地
+rsync -avt rsync://root@172.17.0.2:888/testa dira
+</code></pre>
+<p>如果配置了身份验证功能, 所以客户端连接时会询问密码。如果不想手动输入密码，则可以使用"<code>--password-file</code>&ldquo;选项提供密码文件，密码文件中只有第一行才是传递的密码，其余所有的行都会被自动忽略。</p>
+<h4 id=常见错误>常见错误</h4>
+<pre><code class=language-bash>@ERROR: chroot failed
+rsync error: error starting client-server protocol (code 5) at main.c(1661) [sender=3.1.3]
+</code></pre>
+<p>服务器端的目录不存在或无权限，创建目录并修正权限可解决问题。</p>
+<pre><code class=language-bash>sending incremental file list
+rsync: recv_generator: mkdir &quot;/dira&quot; (in testa) failed: Permission denied (13)
+*** Skipping any contents from this failed directory ***
+dira/
+
+sent 145 bytes  received 173 bytes  636.00 bytes/sec
+total size is 0  speedup is 0.00
+rsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1189) [sender=3.1.3]
+</code></pre>
+<p>目标目录的权限问题，修改所属者和所属组，或直接修改权限为<code>777</code>.</p>
+</div>
+</article>
+</div>
+<aside class="col-12 col-md-3 float-left sidebar">
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3><nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#rsync同步基本说明>rsync同步基本说明</a></li>
+<li><a href=#rsync三种工作方式>rsync三种工作方式</a></li>
+<li><a href=#常用选项>常用选项</a></li>
+<li><a href=#本地示例>本地示例</a></li>
+<li><a href=#排除和包含规则>排除和包含规则</a></li>
+<li><a href=#远程同步>远程同步</a>
+<ul>
+<li><a href=#ssh>ssh</a></li>
+<li><a href=#rsync-daemon>rsync daemon</a>
+<ul>
+<li><a href=#使用步骤示例>使用步骤示例</a></li>
+<li><a href=#常见错误>常见错误</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav></div>
+</aside>
+</div>
+<div class=btn>
+<div class=btn-menu id=btn-menu>
+<i class="iconfont icon-grid-sharp"></i>
+</div>
+<div class=btn-toggle-mode>
+<i class="iconfont icon-contrast-sharp"></i>
+</div>
+<div class=btn-scroll-top>
+<i class="iconfont icon-chevron-up-circle-sharp"></i>
+</div>
+</div>
+<aside class=sidebar-mobile style=display:none>
+<div class=sidebar-wrapper>
+<div class="sidebar-item sidebar-pages">
+<h3>页面</h3>
+<ul>
+<li>
+<a href=/>Home</a>
+</li>
+<li>
+<a href=/archives/>Archives</a>
+</li>
+<li>
+<a href=/about/>About</a>
+</li>
+<li>
+<a href=/search/>Search</a>
+</li>
+<li>
+<a href=/index.xml>RSS</a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-links">
+<h3>链接</h3>
+<ul>
+<li>
+<a href=https://github.com target=_blank><span>GitHub</span></a>
+</li>
+<li>
+<a href=https://cn.bing.com target=_blank><span>Bing</span></a>
+</li>
+<li>
+<a href=https://www.baidu.com/ target=_blank><span>Baidu</span></a>
+</li>
+</ul>
+</div>
+<div class="sidebar-item sidebar-tags">
+<h3>标签</h3>
+<div>
+<span>
+<a href=/tags/awk/>awk</a>
+</span>
+<span>
+<a href=/tags/bash/>bash</a>
+</span>
+<span>
+<a href=/tags/dos/>dos</a>
+</span>
+<span>
+<a href=/tags/iproute2/>iproute2</a>
+</span>
+<span>
+<a href=/tags/js/>js</a>
+</span>
+<span>
+<a href=/tags/linux/>linux</a>
+</span>
+<span>
+<a href=/tags/lvm/>lvm</a>
+</span>
+<span>
+<a href=/tags/mysql/>mysql</a>
+</span>
+<span>
+<a href=/tags/nginx/>nginx</a>
+</span>
+<span>
+<a href=/tags/php/>php</a>
+</span>
+<span>
+<a href=/tags/powershell/>powershell</a>
+</span>
+<span>
+<a href=/tags/ps/>ps</a>
+</span>
+<span>
+<a href=/tags/python/>python</a>
+</span>
+<span>
+<a href=/tags/rsync/>rsync</a>
+</span>
+<span>
+<a href=/tags/sed/>sed</a>
+</span>
+<span>
+<a href=/tags/sftp/>sftp</a>
+</span>
+<span>
+<a href=/tags/shell/>shell</a>
+</span>
+<span>
+<a href=/tags/ssh/>ssh</a>
+</span>
+<span>
+<a href=/tags/top/>top</a>
+</span>
+<span>
+<a href=/tags/ulimit/>ulimit</a>
+</span>
+<span>
+<a href=/tags/web/>web</a>
+</span>
+</div>
+</div>
+<div class="sidebar-item sidebar-toc">
+<h3>目录</h3>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#rsync同步基本说明>rsync同步基本说明</a></li>
+<li><a href=#rsync三种工作方式>rsync三种工作方式</a></li>
+<li><a href=#常用选项>常用选项</a></li>
+<li><a href=#本地示例>本地示例</a></li>
+<li><a href=#排除和包含规则>排除和包含规则</a></li>
+<li><a href=#远程同步>远程同步</a>
+<ul>
+<li><a href=#ssh>ssh</a></li>
+<li><a href=#rsync-daemon>rsync daemon</a>
+<ul>
+<li><a href=#使用步骤示例>使用步骤示例</a></li>
+<li><a href=#常见错误>常见错误</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</aside>
+</main>
+<footer>
+<div class="container-lg clearfix">
+<div class="col-12 footer">
+<span>&copy; 2020-2021
+<a href=/>qlel</a>
+| 基于 <a href=https://github.com/dsrkafuu/hugo-theme-fuji/ target=_blank>Fuji-v2</a> & <a href=https://gohugo.io/ target=_blank>Hugo</a> 构建
+</span>
+</div>
+</div>
+</footer>
+<script defer src=https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-core.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js></script>
+<script defer src=/assets/js/fuji.min.js></script>
+<link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js></script>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/auto-render.min.js onload=renderMathInElement(document.body)></script>
+</body>
+</html>
