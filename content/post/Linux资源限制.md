@@ -2,7 +2,7 @@
 title = "Linux资源限制"
 date = 2021-08-22T17:43:06+08:00
 description = ""
-tags = ['linux'.'ulimit']
+tags = ['linux','ulimit']
 aplayer = false
 showToc = true
 math = true
