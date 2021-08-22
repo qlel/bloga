@@ -823,3 +823,201 @@ ip route add default nexthop via 192.168.1.1 weight 1 nexthop dev ppp0 weight 10
 
 ## 策略路由
 Linux中基于策略的路由（Policy-based routing，PBR）的设计方法如下：首先创建自定义路由表，然后创建规则来告诉内核哪些表用于哪些数据包。
+
+## 网络命名空间
+网络命名空间是单个计算机中的隔离网络堆栈实例。 它们可用于安全域分离，管理虚拟机之间的流量，等等。
+
+每个命名空间都是网络堆栈的完整副本，具有自己的接口、地址、路由等。您可以在命名空间内运行进程，并将命名空间桥接到物理接口。\
+
+namespace(命名空间)和cgroup是软件容器化（想想Docker）趋势中的两个主要内核技术。简单来说，cgroup是一种对进程进行统一的资源监控和限制，它控制着你可以使用多少系统资源（CPU，内存等）。而namespace是对全局系统资源的一种封装隔离，它通过Linux内核对系统资源进行隔离和虚拟化的特性，限制了您可以看到的内容。
+
+Linux 3.8内核提供了6种类型的命名空间：Process ID (pid)、Mount (mnt)、Network (net)、InterProcess Communication (ipc)、UTS、User ID (user)。例如，pid命名空间内的进程只能看到同一命名空间中的进程。mnt命名空间，可以将进程附加到自己的文件系统（如chroot）。
+
+网络命名空间为命名空间内的所有进程提供了全新隔离的网络协议栈。这包括网络接口，路由表和iptables规则。通过使用网络命名空间就可以实现网络虚拟环境，实现彼此之间的网络隔离，这对于云计算中租户网络隔离非常重要，Docker中的网络隔离也是基于此实现的。
+
+### 帮助信息
+```bash
+$ ip netns help
+Usage: ip netns list
+       ip netns add NAME
+       ip netns set NAME NETNSID
+       ip [-all] netns delete [NAME]
+       ip netns identify [PID]
+       ip netns pids NAME
+       ip [-all] netns exec [NAME] cmd ...
+       ip netns monitor
+       ip netns list-id
+NETNSID := auto | POSITIVE-INT
+```
+### 新增一个网络命名空间
+创建一个新的持久网络命名空间：此命令将创建一个名为n0的新网络命名空间。创建命名空间后，ip命令会在`/var/run/netns`目录下增加一个n0文件。
+```bash
+# 新增一个名称为 n0 的网络命名空间
+ip netns add n0
+
+# 列出存在的网络命名空间
+ip netns list
+```
+### 删除一个网络命名空间
+```bash
+ip netns delete n0
+```
+### 在网络命名空间内运行进程
+```bash
+# 语法
+ip [-all] netns exec [NAME] cmd ...
+
+# 在 foo 网络命名空间内运行 /bin/sh
+ip netns exec foo /bin/sh
+```
+### 列出分配给命名空间的所以进程PID
+```bash
+ip netns pids n0
+```
+### 识别进程所属的主网络命名空间
+```bash
+# 语法
+ip netns identify [PID]
+
+# 识别PID=9000的进程所属的主网络命名空间
+ip netns identify 9000
+```
+### 分配一个网络接口到某个网络命名空间
+网络接口就是网卡设备。
+
+如果使用PID，则分配网络接口到PID所属的主命名空间中。
+```bash
+# 语法
+ip link set dev ${interface name} netns ${namespace name}
+ip link set dev ${interface name} netns ${pid}
+
+# 分配 eth0.100 到 foo网络命名空间中
+ip link set dev eth0.100 netns foo
+
+# 将 eth001 设备从 n0 网络命名空间中移到默认的网络命名空间中
+# 因为 PID=1 总是在默认的网络命名空间中
+ip netns exec n0 ip link set dev eth001 netns 1
+```
+注意：当你将一个网络接口移到另一个命名空间中时，会丢失现有的所有配置。
+
+### 将一个命名空间连接到另一个命名空间
+可以通过创建一对`veth`链接并将它们分配到不同的命名空间来实现。
+
+假设要将名为“foo”的命名空间连接到默认命名空间。
+
+```bash
+# 首先，创建一对veth设备：
+ip link add name veth1 type veth peer name veth2
+
+# 将veth2分配到命名空间foo
+ip link set dev veth2 netns foo
+
+# 在 foo 中开启veth2
+ip netns exec foo ip link set dev veth2 up
+
+# 添加一个IP地址到veth2
+ip netns exec foo ip address add 10.1.1.1/24 dev veth2
+
+# 在默认的网络命名空间中添加同类IP地址到veth1
+ip address add 10.1.1.2/24 dev veth1
+```
+这样可以在默认的网络命名空间中ping通foo网络命名空间中的veth2地址。
+
+### 示例
+通过两个隔离的网络命名空间来实现互通。
+
+首先创建两个网络命名空间: `n01`和`n02`
+```bash
+$ sudo ip netns add n01
+$ sudo ip netns add n02
+$ ip netns list
+n02
+n01
+```
+创建一对虚拟veth设备(类似网线)：`veth01`和`veth02`
+```bash
+$ sudo ip link add name veth01 type veth peer name veth02
+
+$ ip link show
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DEFAULT group default qlen 1000
+    link/ether 08:00:27:9b:e4:fb brd ff:ff:ff:ff:ff:ff
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default
+    link/ether 02:42:7d:01:2a:61 brd ff:ff:ff:ff:ff:ff
+4: veth02@veth01: <BROADCAST,MULTICAST,M-DOWN> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 36:e5:3a:dd:13:e5 brd ff:ff:ff:ff:ff:ff
+5: veth01@veth02: <BROADCAST,MULTICAST,M-DOWN> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 0a:c8:db:da:a8:80 brd ff:ff:ff:ff:ff:ff
+```
+这对veth状态是`DOWN`，也就是未激活状态。
+
+分配`veth01`到网络命名空间`n01`中，`veth02`到网络命名空间`n02`中：
+```bash
+$ sudo ip link set dev veth01 netns n01
+$ sudo ip link set dev veth02 netns n02
+
+# 在各自的网络命名空间中查看
+$ sudo ip netns exec n01 ip link show
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+5: veth01@if4: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 0a:c8:db:da:a8:80 brd ff:ff:ff:ff:ff:ff link-netns n02
+$ sudo ip netns exec n02 ip link show
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+4: veth02@if5: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 36:e5:3a:dd:13:e5 brd ff:ff:ff:ff:ff:ff link-netns n01
+```
+激活`veth01`和`veth02`：
+```bash
+$ sudo ip netns exec n01 ip link set dev veth01 up
+$ sudo ip netns exec n02 ip link set dev veth02 up
+
+# 查看激活状态
+$ sudo ip netns exec n01 ip link show dev veth01
+5: veth01@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 0a:c8:db:da:a8:80 brd ff:ff:ff:ff:ff:ff link-netns n02
+$ sudo ip netns exec n02 ip link show dev veth02
+4: veth02@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 36:e5:3a:dd:13:e5 brd ff:ff:ff:ff:ff:ff link-netns n01
+```
+添加IP地址到veth：
+```bash
+$ sudo ip netns exec n01 ip addr add 10.1.1.1/24 dev veth01
+$ sudo ip netns exec n02 ip addr add 10.1.1.2/24 dev veth02
+
+# 查看状态
+$ sudo ip netns exec n01 ip addr show dev veth01
+5: veth01@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 0a:c8:db:da:a8:80 brd ff:ff:ff:ff:ff:ff link-netns n02
+    inet 10.1.1.1/24 scope global veth01
+       valid_lft forever preferred_lft forever
+    inet6 fe80::8c8:dbff:feda:a880/64 scope link
+       valid_lft forever preferred_lft forever
+
+$ sudo ip netns exec n02 ip addr show dev veth02
+4: veth02@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 36:e5:3a:dd:13:e5 brd ff:ff:ff:ff:ff:ff link-netns n01
+    inet 10.1.1.2/24 scope global veth02
+       valid_lft forever preferred_lft forever
+    inet6 fe80::34e5:3aff:fedd:13e5/64 scope link
+       valid_lft forever preferred_lft forever
+```
+ping测试1：
+```bash
+$ sudo ip netns exec n01 ping 10.1.1.2
+PING 10.1.1.2 (10.1.1.2) 56(84) bytes of data.
+64 bytes from 10.1.1.2: icmp_seq=1 ttl=64 time=0.032 ms
+64 bytes from 10.1.1.2: icmp_seq=2 ttl=64 time=0.039 ms
+64 bytes from 10.1.1.2: icmp_seq=3 ttl=64 time=0.035 ms
+^C
+--- 10.1.1.2 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 28ms
+rtt min/avg/max/mdev = 0.032/0.035/0.039/0.005 ms
+```
+如果测试1ping不通，可以将IP地址通过路由添加到veth：
+```bash
+sudo ip exec n01 ip route add 10.1.1.1/24 dev veth01
+sudo ip exec n02 ip route add 10.1.1.2/24 dev veth02
+```
